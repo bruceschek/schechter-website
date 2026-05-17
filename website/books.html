@@ -18,7 +18,11 @@
 
     .book { display: flex; flex-direction: column; gap: 0.2rem; padding: 1.25rem 1.4rem; background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 0.75rem; }
     .book-title  { font-size: 1rem; font-weight: 700; }
+    .book-title a { color: var(--text); text-decoration: none; border-bottom: 1.5px solid var(--border); transition: border-color 0.15s, color 0.15s; }
+    .book-title a:hover { color: var(--accent); border-color: var(--accent); }
     .book-author { font-size: 0.85rem; color: var(--muted); }
+    .book-author a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--border); transition: color 0.15s; }
+    .book-author a:hover { color: var(--accent); }
     .book-desc   { font-size: 0.9rem; color: #444; margin-top: 0.3rem; }
   </style>
 </head>
@@ -29,7 +33,7 @@
       <a class="nav-brand" href="/">The Schechter Company</a>
       <ul class="nav-links">
         <li><a href="/books.html">Books</a></li>
-        <li><a href="/#contact">Contact</a></li>
+        <li><a href="/contact.html">Contact</a></li>
       </ul>
     </div>
   </nav>
@@ -43,20 +47,20 @@
       <div class="category-title">Management &amp; Leadership</div>
 
       <div class="book">
-        <span class="book-title">High Output Management</span>
-        <span class="book-author">Andy Grove</span>
+        <span class="book-title"><a href="https://www.penguinrandomhouse.com/books/636917/high-output-management-by-andrew-s-grove/" target="_blank" rel="noopener">High Output Management</a></span>
+        <span class="book-author"><a href="https://en.wikipedia.org/wiki/Andrew_Grove" target="_blank" rel="noopener">Andy Grove</a></span>
         <span class="book-desc">The definitive guide for managers on building high-performing teams and maximizing organizational output.</span>
       </div>
 
       <div class="book">
-        <span class="book-title">Measure What Matters</span>
-        <span class="book-author">John Doerr</span>
+        <span class="book-title"><a href="https://www.whatmatters.com/the-book" target="_blank" rel="noopener">Measure What Matters</a></span>
+        <span class="book-author"><a href="https://en.wikipedia.org/wiki/John_Doerr" target="_blank" rel="noopener">John Doerr</a></span>
         <span class="book-desc">A guide to Objectives and Key Results (OKRs) — how the world's most successful companies set and achieve bold goals.</span>
       </div>
 
       <div class="book">
-        <span class="book-title">The Hard Thing About Hard Things</span>
-        <span class="book-author">Ben Horowitz</span>
+        <span class="book-title"><a href="https://www.harpercollins.com/products/the-hard-thing-about-hard-things-ben-horowitz" target="_blank" rel="noopener">The Hard Thing About Hard Things</a></span>
+        <span class="book-author"><a href="https://en.wikipedia.org/wiki/Ben_Horowitz" target="_blank" rel="noopener">Ben Horowitz</a></span>
         <span class="book-desc">A how-to manual for managing all the things that can go wrong — and they will — in a startup.</span>
       </div>
     </div>
@@ -65,14 +69,14 @@
       <div class="category-title">Product &amp; Growth</div>
 
       <div class="book">
-        <span class="book-title">The Lean Startup</span>
-        <span class="book-author">Eric Ries</span>
+        <span class="book-title"><a href="http://theleanstartup.com/" target="_blank" rel="noopener">The Lean Startup</a></span>
+        <span class="book-author"><a href="https://en.wikipedia.org/wiki/Eric_Ries" target="_blank" rel="noopener">Eric Ries</a></span>
         <span class="book-desc">How founders can find product market fit followed by growth, through continuous build-measure-learn cycles.</span>
       </div>
 
       <div class="book">
-        <span class="book-title">The Cold Start Problem</span>
-        <span class="book-author">Andrew Chen</span>
+        <span class="book-title"><a href="https://andrewchen.com/cold-start-problem/" target="_blank" rel="noopener">The Cold Start Problem</a></span>
+        <span class="book-author"><a href="https://en.wikipedia.org/wiki/Andrew_Chen_(entrepreneur)" target="_blank" rel="noopener">Andrew Chen</a></span>
         <span class="book-desc">How startups, particularly marketplaces, can overcome the chicken-and-egg problem and build network effects that drive growth.</span>
       </div>
     </div>
@@ -81,8 +85,8 @@
       <div class="category-title">Fundraising &amp; Venture Capital</div>
 
       <div class="book">
-        <span class="book-title">The Secrets of Sand Hill Road</span>
-        <span class="book-author">Scott Kupor</span>
+        <span class="book-title"><a href="https://www.scottkupor.com/secrets-of-sand-hill-road" target="_blank" rel="noopener">The Secrets of Sand Hill Road</a></span>
+        <span class="book-author"><a href="https://a16z.com/author/scott-kupor/" target="_blank" rel="noopener">Scott Kupor</a></span>
         <span class="book-desc">Educates founders on all aspects of venture capital and startup fundraising, from the vantage point of the founders.</span>
       </div>
     </div>

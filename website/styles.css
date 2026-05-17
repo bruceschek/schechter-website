@@ -35,14 +35,14 @@
    available to every element on every page.
    ============================================================================= */
 :root {
-  --text:         #1a1a1a;   /* near-black — main body text */
-  --muted:        #666;      /* medium grey — secondary/supporting text */
-  --border:       #e5e5e5;   /* light grey — lines, card outlines */
-  --accent:       #2563eb;   /* blue — links, buttons, highlights */
-  --accent-hover: #1d4ed8;   /* slightly darker blue — button hover state */
-  --bg:           #fff;      /* white — default page background */
-  --bg-alt:       #efefef;   /* light grey — hero, contact section, cards */
-  --radius:       10px;      /* how rounded the corners of cards/buttons are */
+  --text:         #0f172a;   /* deep slate, almost navy-black — main body text */
+  --muted:        #64748b;   /* blue-grey — secondary/supporting text */
+  --border:       #e2e8f0;   /* cool light grey — lines, card outlines */
+  --accent:       #1e3a8a;   /* deep navy blue — links, buttons, highlights */
+  --accent-hover: #1e40af;   /* slightly lighter navy — button hover state */
+  --bg:           #f8fafc;   /* barely-off-white with cool tint — default page background */
+  --bg-alt:       #eef2f7;   /* soft cool blue-grey — hero, contact section, cards */
+  --radius:       8px;       /* how rounded the corners of cards/buttons are */
   --max:          760px;     /* maximum content width — keeps lines readable */
 }
 
