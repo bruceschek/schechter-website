@@ -5,116 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bruce Schechter — The Schechter Company</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/styles.css" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --text: #1a1a1a;
-      --muted: #666;
-      --border: #e5e5e5;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --bg: #fff;
-      --bg-alt: #f8f8f8;
-      --radius: 10px;
-      --max: 760px;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: var(--text);
-      background: var(--bg);
-      line-height: 1.65;
-      font-size: 1rem;
-    }
-
-    /* NAV */
-    nav {
-      position: sticky; top: 0;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--border);
-      z-index: 100;
-    }
-    .nav-inner {
-      max-width: var(--max); margin: 0 auto;
-      padding: 0 1.5rem; height: 56px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .nav-brand { font-weight: 700; font-size: 1rem; color: var(--text); text-decoration: none; }
-    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
-    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.92rem; }
-    .nav-links a:hover { color: var(--text); }
-
     /* HERO */
     .hero-photo {
       width: 100%; max-height: 380px;
       object-fit: cover; object-position: center 60%; display: block;
     }
     .hero-body { background: var(--bg-alt); padding: 3rem 1.5rem 3.5rem; }
-    .hero-body .inner { max-width: var(--max); margin: 0 auto; display: flex; flex-direction: column; gap: 0.75rem; }
-    .eyebrow { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
-    .hero-body h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800; line-height: 1.2; }
-    .hero-body p { font-size: 1.05rem; color: var(--muted); max-width: 580px; }
-
-    /* SECTIONS */
-    section { padding: 3.5rem 1.5rem; }
-    .inner { max-width: var(--max); margin: 0 auto; }
-    .section-label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.4rem; }
-    h2 { font-size: 1.55rem; font-weight: 700; margin-bottom: 0.6rem; }
-    .section-sub { color: var(--muted); margin-bottom: 1.75rem; }
+    .hero-body .inner { display: flex; flex-direction: column; gap: 0.75rem; }
+    .hero-body h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.2; }
+    .hero-body p  { font-size: 1.05rem; color: var(--muted); max-width: 580px; }
 
     /* EXPERTISE */
     .expertise-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.75rem; }
-    .card { background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.4rem; }
-    .card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .card p { font-size: 0.88rem; color: var(--muted); }
 
     /* CONNECT */
     .connect-links { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
-    .connect-btn {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.6rem 1.1rem; border: 1.5px solid var(--border); border-radius: 8px;
-      text-decoration: none; color: var(--text); font-size: 0.92rem; font-weight: 500;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .connect-btn:hover { border-color: var(--accent); background: #eff6ff; }
-    .connect-btn svg { width: 17px; height: 17px; flex-shrink: 0; }
 
-    /* CONTACT FORM */
+    /* CONTACT */
     #contact { background: var(--bg-alt); border-top: 1px solid var(--border); }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
-    label { display: block; font-size: 0.85rem; font-weight: 600; color: #444; margin-bottom: 0.3rem; margin-top: 1rem; }
-    input, textarea {
-      width: 100%; padding: 0.65rem 0.85rem;
-      border: 1.5px solid var(--border); border-radius: 7px;
-      font-size: 0.97rem; font-family: inherit; background: #fff;
-      transition: border-color 0.15s;
-    }
-    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-    textarea { resize: vertical; min-height: 120px; }
-    .math-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.3rem; }
-    .math-question { font-weight: 600; font-size: 0.97rem; white-space: nowrap; }
-    .math-row input { width: 90px; flex-shrink: 0; }
-    .refresh-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 1.1rem; line-height: 1; }
-    .submit-btn {
-      margin-top: 1.5rem; padding: 0.8rem 2rem;
-      background: var(--accent); color: #fff; border: none;
-      border-radius: 7px; font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: background 0.15s;
-    }
-    .submit-btn:hover { background: var(--accent-hover); }
-    .submit-btn:disabled { background: #93c5fd; cursor: not-allowed; }
-    .form-msg { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 7px; font-size: 0.95rem; display: none; }
-    .form-msg.success { background: #dcfce7; color: #166534; display: block; }
-    .form-msg.error   { background: #fee2e2; color: #991b1b; display: block; }
-
-    /* FOOTER */
-    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--muted); }
-    footer nav { margin-top: 0.5rem; display: flex; gap: 1.25rem; justify-content: center; }
-    footer a { color: var(--muted); text-decoration: none; }
-    footer a:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -138,9 +48,9 @@
   <div class="hero-body">
     <div class="inner">
       <p class="eyebrow">Startup Advisor · Mentor · Aficionado</p>
-      <h2>Bruce Schechter</h2>
+      <h1>Bruce Schechter</h1>
       <p>My singular professional passion is enabling new technology ventures to thrive and scale.</p>
-      <p>With a deep passion for all things software, cloud, AI, data and deep tech.</p>
+      <p>With a deep passion for all things software, cloud, AI and data.</p>
     </div>
   </div>
 
@@ -152,15 +62,15 @@
       <div class="expertise-grid">
         <div class="card">
           <h3>Business Strategy</h3>
-          <p>Helping founders clarify vision and value proposition, and build competitive advantage.</p>
+          <p>Helping founders clarify vision and build durable competitive advantage.</p>
         </div>
-        <div class="expertise-card card">
+        <div class="card">
           <h3>Go-to-Market Planning</h3>
-          <p>Evolve the path from product to customers, and scale from there.</p>
+          <p>Designing the path from product to customers that actually scales.</p>
         </div>
         <div class="card">
           <h3>Funding Strategy</h3>
-          <p>Navigate the fundraising landscape from pre-seed through Series A and beyond.</p>
+          <p>Navigating the fundraising landscape from seed through Series B and beyond.</p>
         </div>
       </div>
     </div>
@@ -169,13 +79,17 @@
   <!-- CONNECT -->
   <section id="connect" style="border-top:1px solid var(--border)">
     <div class="inner">
-      <p class="section-label">To Connect</p>
+      <p class="section-label">Connect</p>
       <h2>Want to Connect?</h2>
-      <p class="section-sub"> I'm interested in connecting with innovative entrepreneurs and technology leaders.</p>
+      <p class="section-sub">Ready to discuss your next venture? I'm always interested in connecting with innovative entrepreneurs and technology leaders.</p>
       <div class="connect-links">
-        <a class="connect-btn" href="https://linkedin.com/in/bruceschechter" target="_blank" rel="noopener">
+        <a class="btn-outline" href="https://linkedin.com/in/bruceschechter" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7H10V9h4v2a6 6 0 0 1 2-1z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
           Connect on LinkedIn
+        </a>
+        <a class="btn-outline" href="https://bsky.app/profile/bruceschechter.bsky.social" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 4c1.306 0 2.417.835 2.834 2H12a3 3 0 0 0 0 6h2.834A3.001 3.001 0 0 1 12 16a4 4 0 1 1 0-8v-2z"/></svg>
+          Follow on Bluesky
         </a>
       </div>
     </div>
@@ -210,7 +124,7 @@
           <button type="button" class="refresh-btn" id="refresh" title="New question">↻</button>
         </div>
 
-        <button type="submit" class="submit-btn" id="submit-btn">Send message</button>
+        <button type="submit" class="btn-primary" id="submit-btn" style="margin-top:1.5rem">Send message</button>
         <div class="form-msg" id="form-msg"></div>
       </form>
     </div>
