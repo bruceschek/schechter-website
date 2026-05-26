@@ -1,0 +1,20 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - npm ci
+        - npm run build
+
+frontend:
+  phases:
+    build:
+      commands:
+        - echo "Frontend static files ready"
+  artifacts:
+    baseDirectory: src
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - 'node_modules/**/*'
