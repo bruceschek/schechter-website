@@ -65,6 +65,7 @@ export const handler = async (event: any) => {
       await ses.send(new SendEmailCommand({
         Source: 'noreply@schechter.com',
         Destination: { ToAddresses: ['bruce@schechter.com'] },
+        ReplyToAddresses: [email],
         Message: {
           Subject: { Data: `New contact form submission from ${name}` },
           Body: {
