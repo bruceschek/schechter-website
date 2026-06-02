@@ -1,13 +1,29 @@
 import { defineBackend } from '@aws-amplify/backend';
-import { auth } from './auth/resource';
-import { data } from './data/resource';
 import { contactFunction } from './functions/contact/resource';
+import { FunctionUrl, FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 
-/**
- * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
- */
-defineBackend({
-  auth,
-  data,
+const backend = defineBackend({
   contactFunction,
+});
+
+const fn = backend.contactFunction.resources.lambda;
+
+const fnUrl = new FunctionUrl(
+  backend.createStack('ContactFunctionUrl'),
+  'ContactFunctionUrl',
+  {
+    function: fn,
+    authType: FunctionUrlAuthType.NONE,
+    cors: {
+      allowedOrigins: ['*'],
+      allowedMethods: [HttpMethod.ALL],
+      allowedHeaders: ['Content-Type'],
+    },
+  }
+);
+
+backend.addOutput({
+  custom: {
+    contactApiUrl: fnUrl.url,
+  },
 });

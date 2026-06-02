@@ -88,7 +88,7 @@
   </footer>
 
   <script>
-    let API_URL = 'https://s1ucm2bj6i.execute-api.us-west-2.amazonaws.com/prod/contact';
+    let API_URL = '';
     let mathProblem = {};
 
     async function loadConfig() {
@@ -96,16 +96,26 @@
         const res = await fetch('/amplify_outputs.json');
         if (res.ok) {
           const config = await res.json();
-          if (config.functions?.contact?.endpoint) {
-            API_URL = config.functions.contact.endpoint;
+          if (config.custom?.contactApiUrl) {
+            API_URL = config.custom.contactApiUrl.replace(/\/$/, '');
           }
         }
       } catch (e) {
-        console.log('Using default API endpoint');
+        // no config
       }
     }
 
     async function loadCaptcha() {
+      if (!API_URL) {
+        const a = Math.floor(Math.random() * 8) + 3;
+        const b = Math.floor(Math.random() * 8) + 3;
+        const op = Math.random() < 0.5 ? 'add' : 'multiply';
+        mathProblem = { a, b, op };
+        document.getElementById('math-question').textContent =
+          op === 'add' ? `What is ${a} + ${b}?` : `What is ${a} × ${b}?`;
+        document.getElementById('math-answer').value = '';
+        return;
+      }
       try {
         const res = await fetch(`${API_URL}/captcha`);
         const data = await res.json();
@@ -144,6 +154,11 @@
       if (!name || !email || !message || !answer) {
         status.className = 'form-msg error';
         status.textContent = 'Please fill in all fields.';
+        return;
+      }
+      if (!API_URL) {
+        status.className = 'form-msg error';
+        status.textContent = 'Contact service is unavailable. Please email bruce@schechter.com directly.';
         return;
       }
 

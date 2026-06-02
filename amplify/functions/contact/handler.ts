@@ -27,7 +27,7 @@ export const handler = async (event: any) => {
   const path = event.requestContext?.http?.path || event.path || '';
 
   try {
-    if (httpMethod === 'GET' && path.includes('/captcha')) {
+    if (httpMethod === 'GET' && (path === '/captcha' || path.endsWith('/captcha'))) {
       const captcha = generateCaptcha();
       return {
         statusCode: 200,
@@ -41,7 +41,7 @@ export const handler = async (event: any) => {
       };
     }
 
-    if (httpMethod === 'POST' && path === '/contact') {
+    if (httpMethod === 'POST') {
       const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
       const { name, email, message, math_answer, math_a, math_b, math_op } = body;
 
