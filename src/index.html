@@ -4,124 +4,107 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bruce Schechter — The Schechter Company</title>
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css" />
-  <style>
-    /* HERO */
-    .hero-photo {
-      width: 100%; max-height: 380px;
-      object-fit: cover; object-position: center 60%; display: block;
-    }
-    .hero-body { background: var(--bg-alt); padding: 3rem 1.5rem 3.5rem; }
-    .hero-body .inner { display: flex; flex-direction: column; gap: 0.75rem; }
-    .hero-body h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.2; }
-    .hero-body p  { font-size: 1.05rem; color: var(--muted); max-width: 580px; }
+  <link rel="icon" type="image/png" href="favicon.png" />
 
-    /* EXPERTISE */
-    .expertise-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.75rem; }
+  <!-- Fonts: Hanken Grotesk (used everywhere) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" />
 
-    /* SOCIAL */
-    .social-links { display: flex; gap: 2rem; margin-top: 1.5rem; align-items: center; }
-    .social-link  { color: var(--text); text-decoration: none; transition: color 0.15s, opacity 0.15s; }
-    .social-link:hover { color: var(--accent); }
-    .social-link svg { width: 36px; height: 36px; display: block; }
-
-    /* CONTACT TEASER */
-    #contact { background: var(--bg-alt); border-top: 1px solid var(--border); }
-    .contact-cta {
-      display: inline-block; margin-top: 1.25rem;
-      padding: 0.8rem 2rem;
-      background: var(--accent); color: #fff;
-      border-radius: var(--radius); text-decoration: none;
-      font-weight: 600; font-size: 1rem;
-      transition: background 0.15s;
-    }
-    .contact-cta:hover { background: var(--accent-hover); }
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-  <nav>
+  <nav class="site">
     <div class="nav-inner">
-      <a class="nav-brand" href="/">The Schechter Company</a>
+      <a class="nav-brand" href="index.html">The Schechter Company</a>
       <ul class="nav-links">
-        <li><a href="/books.html">Books</a></li>
-        <li><a href="/contact.html">Contact</a></li>
+        <li><a href="books.html">Books</a></li>
+        <li><a href="contact.html">Contact</a></li>
       </ul>
     </div>
   </nav>
 
-  <!-- HERO -->
-  <img
-    class="hero-photo"
-    src="/assets/120303-san-fran-horizon-IMG_0220-2048x979.jpg"
-    alt="Golden Gate Bridge from Pacific Heights"
-  />
-  <div class="hero-body">
-    <div class="inner">
+  <!-- HERO — bold headline on white, then the clean SF photo (no overlay) -->
+  <header class="hero">
+    <div class="shell hero-text">
       <p class="eyebrow">Startup Advisor · Mentor · Peripatetic Practitioner</p>
       <h1>Bruce Schechter</h1>
-      <p>My singular professional passion is enabling new technology ventures to thrive and scale.</p>
-      <p>I bring strong passion for all things software, cloud, AI, data and deep tech.</p>
+      <p class="hero-tagline">Helping new technology ventures thrive and scale.</p>
     </div>
-  </div>
+    <img class="hero-photo" src="assets/120303-san-fran-horizon-IMG_0220-2048x979.jpg" alt="San Francisco skyline with the Golden Gate Bridge" />
+  </header>
 
-  <!-- EXPERTISE -->
-  <section id="expertise">
-    <div class="inner">
+  <!-- INTRO -->
+  <section class="intro">
+    <div class="shell">
+      <div class="inner">
+        <p>My singular professional passion is enabling new technology ventures to thrive and scale.</p>
+        <p class="sub">I bring deep enthusiasm for all things software, cloud, AI, data and deep tech.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- AREAS OF FOCUS -->
+  <section class="section-tight" style="background:var(--surface-alt); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+    <div class="shell">
+      <p class="eyebrow">What I Do</p>
       <h2>Areas of Focus</h2>
-      <div class="expertise-grid">
+      <div class="grid-3">
         <div class="card">
+          <span class="num">01</span>
           <h3>Business Strategy</h3>
           <p>Helping founders clarify vision and value proposition, and establish competitive advantage.</p>
         </div>
         <div class="card">
+          <span class="num">02</span>
           <h3>Go-to-Market Planning</h3>
-          <p>Designing the path to product market fit, followed by growth and scale.</p>
+          <p>Designing the path to product–market fit, followed by growth and scale.</p>
         </div>
         <div class="card">
+          <span class="num">03</span>
           <h3>Funding Strategy</h3>
-          <p>Helping founders understand the venture capital landscape and prepare messaging and strategy accordingly.</p>
+          <p>Helping founders understand the venture capital landscape and prepare their messaging and strategy accordingly.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- SOCIAL / CONNECT -->
-  <section style="border-top:1px solid var(--border)">
-    <div class="inner">
-      <p class="section-sub">FInd me online at::</p>
-      <div class="social-links">
-        <!-- LinkedIn -->
-        <a class="social-link" href="https://linkedin.com/in/bruceschechter" target="_blank" rel="noopener" title="LinkedIn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-          </svg>
-        </a>
-        <!-- X / Twitter -->
-        <a class="social-link" href="https://twitter.com/bruceschechter" target="_blank" rel="noopener" title="X / Twitter">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-          </svg>
-        </a>
+  <!-- CLOSING: connect + contact in one intentional band -->
+  <section class="closing">
+    <div class="shell">
+      <div class="closing-grid">
+        <div>
+          <h2>Looking to reach me?</h2>
+          <a class="btn-primary" href="contact.html" style="margin-top:1.5rem;">Open contact form</a>
+        </div>
+        <div>
+          <p class="eyebrow">Find me online</p>
+          <div class="social-links">
+            <a class="social-link" href="https://linkedin.com/in/bruceschechter" target="_blank" rel="noopener" title="LinkedIn">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <a class="social-link" href="https://twitter.com/bruceschechter" target="_blank" rel="noopener" title="X / Twitter">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- CONTACT TEASER -->
-  <section id="contact">
-    <div class="inner">
-      <h2>To get in touch:</h2>
-      <a class="contact-cta" href="/contact.html">Open contact form</a>
+  <footer class="site">
+    <div class="shell">
+      <div class="copy">© 2026 The Schechter Company. All rights reserved.</div>
+      <nav>
+        <a href="books.html">Books</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </nav>
     </div>
-  </section>
-
-  <footer>
-    <div>© 2024 The Schechter Company. All rights reserved.</div>
-    <nav>
-      <a href="/books.html">Books</a>
-      <a href="/privacy.html">Privacy Policy</a>
-    </nav>
   </footer>
 
 </body>

@@ -4,46 +4,35 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Contact — Bruce Schechter</title>
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="stylesheet" href="/styles.css" />
-  <style>
-    .page-header { background: var(--bg-alt); padding: 3rem 1.5rem; border-bottom: 1px solid var(--border); }
-    .page-header .inner { display: flex; flex-direction: column; gap: 0.5rem; }
-
-    .note {
-      margin-top: 0;
-      padding: 1.1rem 1.4rem;
-      background: var(--bg-alt);
-      border-left: 3px solid var(--accent);
-      border-radius: 0 var(--radius) var(--radius) 0;
-      font-size: 0.95rem;
-      color: var(--muted);
-      margin-bottom: 2rem;
-    }
-  </style>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-  <nav>
+  <nav class="site">
     <div class="nav-inner">
-      <a class="nav-brand" href="/">The Schechter Company</a>
+      <a class="nav-brand" href="index.html">The Schechter Company</a>
       <ul class="nav-links">
-        <li><a href="/books.html">Books</a></li>
-        <li><a href="/contact.html">Contact</a></li>
+        <li><a href="books.html">Books</a></li>
+        <li><a href="contact.html">Contact</a></li>
       </ul>
     </div>
   </nav>
 
   <div class="page-header">
-    <div class="inner">
-      <h1 style="font-size: 1.75rem;">To get in touch:</h1>
+    <div class="shell">
+      <p class="page-eyebrow">Contact</p>
+      <h1>To get in touch</h1>
     </div>
   </div>
 
   <div class="page">
     <div class="note">
       <p><strong>My Interests in Connecting:</strong></p>
-      <ul style="margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+      <ul>
         <li><strong>Sectors:</strong> Innovative tech entrepreneurs in cloud computing, AI, data, and deep tech. I lean heavily toward B2B over B2C.</li>
         <li><strong>Profiles:</strong> Technologists and engineers at any company size with a strong mindset toward company formation.</li>
         <li><strong>Academia:</strong> Student and faculty founders, especially from my alma maters, Purdue and Stanford.</li>
@@ -78,13 +67,15 @@
     </form>
   </div>
 
-  <footer>
-    <div>© 2024 The Schechter Company. All rights reserved.</div>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/books.html">Books</a>
-      <a href="/privacy.html">Privacy Policy</a>
-    </nav>
+  <footer class="site">
+    <div class="shell">
+      <div class="copy">© 2026 The Schechter Company. All rights reserved.</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="books.html">Books</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </nav>
+    </div>
   </footer>
 
   <script>

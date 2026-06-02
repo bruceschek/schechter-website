@@ -1,357 +1,351 @@
 /* =============================================================================
-   STYLES.CSS — Shared styles for schechter.com
-   Every HTML page on this site loads this file first, then adds its own
-   small <style> block for anything unique to that page.
+   STYLES-V2.CSS — Apple-inspired design system for schechter.com
+     • White backgrounds with light-grey (#f5f5f7) accent bands
+     • One clean blue accent for subtle but confident color
+     • All sans-serif (Hanken Grotesk) — no serif
+     • The San Francisco hero photo shown clean, no overlay
+     • Soft-shadow cards, generous whitespace
+   Same architecture as your original: this shared file loads first, then each
+   page adds a small <style> block for anything unique to that page.
    ============================================================================= */
 
 
-/* =============================================================================
-   RESET
-   Browsers have their own default styles (margins, padding, box sizing) that
-   differ from browser to browser. This rule wipes those defaults so everything
-   starts from a clean, predictable baseline.
-
-   "*" means "every element on the page".
-   "::before" and "::after" are invisible pseudo-elements some elements create.
-
-   box-sizing: border-box  → padding and borders are included in an element's
-                             width/height, rather than added on top. This is
-                             almost always what you want.
-   margin: 0; padding: 0   → remove all default spacing.
-   ============================================================================= */
+/* RESET */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 
 /* =============================================================================
-   DESIGN TOKENS (CSS Custom Properties / Variables)
-   Think of these as named constants — like variables in any programming language.
-   Define a value once here, use it everywhere. To change the accent color across
-   the entire site, change ONE line here instead of hunting through every file.
-
-   Syntax:  --variable-name: value;
-   Usage:   color: var(--accent);   ← references the variable
-
-   :root means "the very top of the document" — variables defined here are
-   available to every element on every page.
+   DESIGN TOKENS
    ============================================================================= */
 :root {
-  --text:         #0f172a;   /* deep slate, almost navy-black — main body text */
-  --muted:        #64748b;   /* blue-grey — secondary/supporting text */
-  --border:       #e2e8f0;   /* cool light grey — lines, card outlines */
-  --accent:       #1e3a8a;   /* deep navy blue — links, buttons, highlights */
-  --accent-hover: #1e40af;   /* slightly lighter navy — button hover state */
-  --bg:           #f8fafc;   /* barely-off-white with cool tint — default page background */
-  --bg-alt:       #eef2f7;   /* soft cool blue-grey — hero, contact section, cards */
-  --radius:       8px;       /* how rounded the corners of cards/buttons are */
-  --max:          760px;     /* maximum content width — keeps lines readable */
+  /* — Color: white & grey, Apple-like, with one blue accent — */
+  --ink:          #1d1d1f;   /* near-black — primary text */
+  --muted:        #6e6e73;   /* grey — secondary text */
+  --faint:        #86868b;   /* lighter grey — captions, fine print */
+  --line:         #d2d2d7;   /* hairline grey — rules & dividers */
+  --bg:           #ffffff;   /* white — default page background */
+  --surface:      #ffffff;   /* white — cards */
+  --surface-alt:  #f5f5f7;   /* light grey — alternating section bands */
+  --accent:       #2767ad;   /* muted, dampened blue — eyebrows, links, buttons */
+  --accent-deep:  #2f73bd;   /* slightly brighter — hover */
+
+  /* — Type: one family, used everywhere — */
+  --sans:  'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* — Structure — */
+  --radius:   18px;     /* card corner rounding */
+  --shell:    1120px;   /* outer max width */
+  --measure:  680px;    /* readable text width */
 }
 
 
 /* =============================================================================
-   BASE / BODY
-   Styles applied to the entire page via the <body> element.
-   Every other element inherits font-family and color from here unless
-   overridden more specifically.
+   BASE
    ============================================================================= */
 body {
-  /* Font stack: tries each font left to right, uses the first one available.
-     -apple-system / BlinkMacSystemFont = San Francisco on Mac/iOS
-     Segoe UI = Windows system font
-     Roboto   = Android / Chrome OS
-     sans-serif = fallback — any non-serif font the OS has */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  color: var(--text);        /* use our near-black variable for all text */
-  background: var(--bg);     /* white background */
-  line-height: 1.65;         /* space between lines of text — 1.65× the font size.
-                                1.0 would be cramped; 2.0 would be very airy */
-  font-size: 1rem;           /* 1rem = the browser's default font size (usually 16px).
-                                Using rem instead of px respects user preferences */
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.6;
+  font-size: 1.0625rem;            /* 17px base */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-
-/* =============================================================================
-   NAVIGATION BAR
-   The bar that sticks to the top of the page as you scroll.
-   ============================================================================= */
-nav {
-  position: sticky;              /* stays at the top as the user scrolls */
-  top: 0;                        /* stick to the very top edge */
-  background: rgba(255,255,255,0.92); /* 92% opaque white — slightly see-through */
-  backdrop-filter: blur(8px);    /* blurs whatever is behind the nav (frosted glass effect) */
-  border-bottom: 1px solid var(--border); /* thin grey line under the nav */
-  z-index: 100;                  /* z-index controls stacking order. 100 ensures
-                                    the nav sits on top of all other content */
-}
-
-/* The inner wrapper constrains the nav content to --max width and centers it */
-.nav-inner {
-  max-width: var(--max);         /* never wider than 760px */
-  margin: 0 auto;                /* center horizontally: "auto" left + right margins */
-  padding: 0 1.5rem;             /* 1.5rem breathing room on left and right sides */
-  height: 56px;                  /* fixed height for the nav bar */
-  display: flex;                 /* flexbox: lays children out in a row */
-  align-items: center;           /* vertically center the brand + links */
-  justify-content: space-between; /* push brand to left, links to right */
-}
-
-/* The site name / logo on the left */
-.nav-brand {
-  font-weight: 700;              /* bold */
-  font-size: 1rem;
-  color: var(--text);
-  text-decoration: none;         /* removes the underline that links have by default */
-}
-
-/* The list of nav links on the right */
-.nav-links {
-  display: flex;                 /* lay links out in a row */
-  gap: 1.5rem;                   /* space between each link */
-  list-style: none;              /* removes the bullet points from the <ul> */
-}
-
-.nav-links a {
-  color: var(--muted);           /* grey by default — not too prominent */
-  text-decoration: none;
-  font-size: 0.92rem;
-}
-
-/* :hover is a pseudo-class — these styles apply when the mouse is over the element */
-.nav-links a:hover { color: var(--text); } /* darken to near-black on hover */
-
-
-/* =============================================================================
-   FOOTER
-   The bottom bar on every page.
-   ============================================================================= */
-footer {
-  border-top: 1px solid var(--border); /* thin line separating footer from content */
-  padding: 2rem 1.5rem;
-  text-align: center;
-  font-size: 0.85rem;            /* slightly smaller than body text */
-  color: var(--muted);           /* grey */
-}
-
-/* The footer contains a <nav> for its links. We need to undo the sticky/blur
-   styles that apply to the top nav, since they'd look wrong here. */
-footer nav {
-  margin-top: 0.5rem;
-  display: flex;
-  gap: 1.25rem;
-  justify-content: center;
-  background: none;              /* override: no white background */
-  border: none;                  /* override: no bottom border */
-  position: static;             /* override: not sticky — stays in normal flow */
-  backdrop-filter: none;        /* override: no blur effect */
-}
-
-footer a { color: var(--muted); text-decoration: none; }
-footer a:hover { color: var(--text); }
-
-
-/* =============================================================================
-   TYPOGRAPHY — Headings and text helpers
-   ============================================================================= */
-
-/* Main page title */
-h1 {
-  /* clamp(min, preferred, max) — the font scales with viewport width,
-     but never smaller than 1.6rem or larger than 2.2rem.
-     3.5vw = 3.5% of the viewport width */
-  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
-  font-weight: 800;              /* extra bold */
-  margin-bottom: 0.6rem;
-}
-
-/* Section headings */
-h2 {
-  font-size: 1.55rem;
-  font-weight: 700;
-  margin-bottom: 0.6rem;
-}
-
-/* Small uppercase label that appears above a heading — e.g. "What I do" */
-.eyebrow, .section-label, .page-eyebrow {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;        /* space the letters out slightly — classic for all-caps labels */
-  text-transform: uppercase;    /* force ALL CAPS regardless of how it's typed in HTML */
-  color: var(--accent);         /* blue */
-  margin-bottom: 0.4rem;
-}
-
-/* Subtitle / descriptive text that sits below a heading */
-.section-sub, .page-sub {
-  color: var(--muted);
-  margin-bottom: 1.75rem;
-}
+img { display: block; max-width: 100%; }
 
 
 /* =============================================================================
    LAYOUT HELPERS
-   Reusable classes for constraining and centering content.
    ============================================================================= */
+.shell { max-width: var(--shell); margin: 0 auto; padding: 0 2rem; }
+.inner { max-width: var(--measure); }
 
-/* Centers content and caps it at --max width. Used inside sections. */
-.inner {
-  max-width: var(--max);
-  margin: 0 auto;                /* auto left+right margins = centered */
+section { padding: 5.5rem 0; }
+.section-tight { padding: 4rem 0; }
+
+
+/* =============================================================================
+   NAVIGATION — slim, frosted white
+   ============================================================================= */
+nav.site {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: saturate(180%) blur(14px);
+  border-bottom: 1px solid var(--line);
 }
-
-/* Default spacing for every <section> element */
-section {
-  padding: 3.5rem 1.5rem;       /* top/bottom: 3.5rem, left/right: 1.5rem */
-}
-
-/* Full-page content wrapper used on books.html and privacy.html */
-.page {
-  max-width: var(--max);
+.nav-inner {
+  max-width: var(--shell);
   margin: 0 auto;
-  padding: 3rem 1.5rem 5rem;    /* top: 3rem, sides: 1.5rem, bottom: 5rem (extra space) */
+  padding: 0 2rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-
-
-/* =============================================================================
-   CARD
-   A box with a grey background, border, and rounded corners.
-   Used for the "Areas of Focus" boxes on the homepage.
-   ============================================================================= */
-.card {
-  background: var(--bg-alt);    /* light grey background */
-  border: 1px solid var(--border); /* thin grey border */
-  border-radius: var(--radius); /* rounded corners (10px) */
-  padding: 1.25rem 1.4rem;
+.nav-brand {
+  font-weight: 700;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
 }
-
-.card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; }
-.card p  { font-size: 0.88rem; color: var(--muted); }
-
-
-/* =============================================================================
-   BUTTONS
-   Two button styles: outline (for LinkedIn/Bluesky links) and primary (Submit).
-   ============================================================================= */
-
-/* Outline button — transparent background, grey border, used for social links */
-.btn-outline {
-  display: inline-flex;         /* allows the icon + text to sit side by side */
-  align-items: center;          /* vertically center icon and text */
-  gap: 0.5rem;                  /* space between icon and text */
-  padding: 0.6rem 1.1rem;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  text-decoration: none;        /* remove link underline */
-  color: var(--text);
-  font-size: 0.92rem;
+.nav-links { display: flex; gap: 2rem; list-style: none; align-items: center; }
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
   font-weight: 500;
-  /* transition animates the change between normal and hover states.
-     0.15s = animation lasts 0.15 seconds */
-  transition: border-color 0.15s, background 0.15s;
+  transition: color 0.18s;
 }
-.btn-outline:hover {
-  border-color: var(--accent);  /* border turns blue on hover */
-  background: #eff6ff;          /* very light blue tint on hover */
-}
-.btn-outline svg { width: 17px; height: 17px; flex-shrink: 0; } /* size the icon; flex-shrink: 0 prevents it from squishing */
+.nav-links a:hover { color: var(--accent); }
 
-/* Primary button — solid blue background, used for "Send message" */
+
+/* =============================================================================
+   TYPOGRAPHY — all sans-serif, bold headings
+   ============================================================================= */
+h1, h2, h3 { font-family: var(--sans); letter-spacing: -0.025em; line-height: 1.08; }
+
+h1 { font-size: clamp(2.6rem, 6vw, 4rem); font-weight: 700; }
+h2 { font-size: clamp(1.8rem, 3.4vw, 2.5rem); font-weight: 700; margin-bottom: 0.5rem; }
+h3 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.015em; }
+
+p { text-wrap: pretty; }
+
+/* Eyebrow — small uppercase blue label above a heading */
+.eyebrow, .page-eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.lede { font-size: 1.3rem; color: var(--ink); max-width: var(--measure); }
+.section-sub, .page-sub { color: var(--muted); max-width: var(--measure); font-size: 1.12rem; }
+
+
+/* =============================================================================
+   HERO — bold headline on white, then the clean SF photo below (no overlay)
+   ============================================================================= */
+.hero-text {
+  padding: 4.5rem 0 3rem;
+}
+.hero-text .hero-tagline {
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+  color: var(--muted);
+  font-weight: 400;
+  max-width: 32ch;
+  margin-top: 1rem;
+  letter-spacing: -0.01em;
+}
+.hero-photo {
+  width: 100%;
+  height: clamp(320px, 46vw, 560px);
+  object-fit: cover;
+  object-position: center 56%;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 24px 46px -26px rgba(0,0,0,0.55);
+}
+
+
+/* =============================================================================
+   INTRO — short statement on white
+   ============================================================================= */
+.intro { padding-top: 3.25rem; }
+.intro p { font-size: clamp(1.25rem, 2.4vw, 1.6rem); line-height: 1.45; color: var(--ink); max-width: 22ch; font-weight: 600; letter-spacing: -0.02em; }
+.intro .inner { max-width: 760px; }
+.intro p.sub { font-size: 1.18rem; color: var(--muted); max-width: 56ch; font-weight: 400; letter-spacing: 0; margin-top: 1.1rem; line-height: 1.55; }
+
+
+/* =============================================================================
+   CARDS — white surfaces, soft shadow, on a light-grey band
+   ============================================================================= */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 2.1rem 2rem 2.2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 10px 28px -14px rgba(0,0,0,0.12);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 18px 40px -16px rgba(0,0,0,0.18);
+}
+.card .num {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 0.9rem;
+}
+.card h3 { margin-bottom: 0.5rem; }
+.card p { font-size: 1rem; color: var(--muted); }
+
+
+/* =============================================================================
+   CLOSING — connect + contact in one band
+   ============================================================================= */
+.closing { background: var(--surface-alt); border-top: 1px solid var(--line); }
+.closing-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+@media (max-width: 760px) { .closing-grid { grid-template-columns: 1fr; gap: 2.5rem; } }
+
+.social-links { display: flex; gap: 1rem; margin-top: 1.5rem; }
+.social-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px -10px rgba(0,0,0,0.2);
+  transition: color 0.18s, transform 0.18s;
+}
+.social-link:hover { color: var(--accent); transform: translateY(-2px); }
+.social-link svg { width: 22px; height: 22px; }
+
+
+/* =============================================================================
+   BUTTONS — Apple-style blue pill
+   ============================================================================= */
 .btn-primary {
-  padding: 0.8rem 2rem;
-  background: var(--accent);    /* solid blue */
-  color: #fff;                  /* white text */
-  border: none;                 /* no border — the background IS the button */
-  border-radius: 7px;
+  display: inline-block;
+  padding: 0.85rem 1.8rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 980px;
+  font-family: var(--sans);
   font-size: 1rem;
   font-weight: 600;
-  cursor: pointer;              /* show hand cursor on hover (it's a button, not text) */
-  transition: background 0.15s;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s, transform 0.18s;
 }
-.btn-primary:hover    { background: var(--accent-hover); } /* slightly darker blue */
-.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; } /* light blue + no-entry cursor when disabled */
+.btn-primary:hover { background: var(--accent-deep); transform: translateY(-1px); }
+.btn-primary:disabled { background: var(--faint); cursor: not-allowed; transform: none; }
 
 
 /* =============================================================================
-   FORMS
-   Shared styles for labels, inputs, textareas, and the math captcha row.
+   FOOTER
    ============================================================================= */
-
-/* Field labels like "Name", "Email", "Message" */
-label {
-  display: block;               /* makes the label take its own full line */
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #444;
-  margin-bottom: 0.3rem;        /* small gap between label and input below it */
-  margin-top: 1rem;             /* space above each label, separating fields */
+footer.site {
+  border-top: 1px solid var(--line);
+  padding: 2.5rem 0;
+  background: var(--bg);
 }
+footer.site .shell { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+footer.site .copy { font-size: 0.88rem; color: var(--faint); }
+footer.site nav { display: flex; gap: 1.5rem; }
+footer.site a { color: var(--muted); text-decoration: none; font-size: 0.9rem; transition: color 0.18s; }
+footer.site a:hover { color: var(--accent); }
 
-/* Text inputs and the message textarea */
+
+/* =============================================================================
+   INTERIOR PAGES — shared scaffold for Books, Contact, Privacy
+   ============================================================================= */
+.page { max-width: 880px; margin: 0 auto; padding: 4rem 2rem 6rem; }
+.page > h1 { margin-bottom: 0.6rem; }
+.page-eyebrow {
+  display: inline-block;
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 1rem;
+}
+.page-sub { color: var(--muted); font-size: 1.15rem; max-width: 60ch; margin-bottom: 3rem; }
+
+/* Slim grey header band used on Contact */
+.page-header { background: var(--surface-alt); border-bottom: 1px solid var(--line); padding: 3.5rem 0 3rem; }
+.page-header .shell h1 { font-size: clamp(2rem, 4vw, 2.8rem); }
+.page-header .shell .page-eyebrow { margin-bottom: 0.75rem; }
+
+
+/* =============================================================================
+   BOOKS
+   ============================================================================= */
+.category { margin-bottom: 3.5rem; }
+.category-title {
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent); padding-bottom: 0.6rem; border-bottom: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+}
+.book {
+  display: flex; gap: 1.5rem; align-items: flex-start;
+  background: var(--surface); border-radius: var(--radius);
+  padding: 1.5rem 1.6rem; margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 10px 28px -16px rgba(0,0,0,0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.book:hover { transform: translateY(-3px); box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 16px 36px -18px rgba(0,0,0,0.18); }
+.book-content { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
+.book-cover { width: 84px; height: 126px; object-fit: cover; border-radius: 6px; flex-shrink: 0; box-shadow: 0 4px 14px -6px rgba(0,0,0,0.3); }
+.book-title { font-size: 1.08rem; font-weight: 700; letter-spacing: -0.01em; }
+.book-title a { color: var(--ink); text-decoration: none; transition: color 0.15s; }
+.book-title a:hover { color: var(--accent); }
+.book-author { font-size: 0.92rem; color: var(--muted); }
+.book-author a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--line); transition: color 0.15s; }
+.book-author a:hover { color: var(--accent); }
+.book-desc { font-size: 0.96rem; color: var(--muted); margin-top: 0.4rem; line-height: 1.5; }
+
+
+/* =============================================================================
+   CONTACT FORM
+   ============================================================================= */
+.note {
+  padding: 1.4rem 1.6rem; background: var(--surface-alt);
+  border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 0.97rem; color: var(--muted); margin-bottom: 2.5rem;
+}
+.note p { margin-bottom: 0.5rem; }
+.note ul { margin: 0.5rem 0 1rem 1.4rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.note strong { color: var(--ink); }
+
+label { display: block; font-size: 0.9rem; font-weight: 600; color: var(--ink); margin-bottom: 0.4rem; margin-top: 1.25rem; }
 input, textarea {
-  width: 100%;                  /* stretch to fill the available width */
-  padding: 0.65rem 0.85rem;
-  border: 1.5px solid var(--border);
-  border-radius: 7px;
-  font-size: 0.97rem;
-  font-family: inherit;         /* use the same font as the rest of the page —
-                                   browsers default to a different font for inputs */
-  background: #fff;
-  transition: border-color 0.15s;
+  width: 100%; padding: 0.8rem 0.95rem; border: 1.5px solid var(--line);
+  border-radius: 10px; font-size: 1rem; font-family: inherit; background: var(--surface);
+  color: var(--ink); transition: border-color 0.15s, box-shadow 0.15s;
 }
+input::placeholder, textarea::placeholder { color: var(--faint); }
+input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+textarea { resize: vertical; min-height: 130px; }
 
-/* When the user clicks into a field (:focus), highlight the border in blue */
-input:focus, textarea:focus {
-  outline: none;                /* remove the browser's default focus ring */
-  border-color: var(--accent);  /* replace with our blue border */
-}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+@media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
 
-textarea {
-  resize: vertical;             /* let the user drag to make it taller, but not wider */
-  min-height: 120px;
-}
+.math-row { display: flex; align-items: center; gap: 0.85rem; margin-top: 0.4rem; }
+.math-question { font-weight: 600; font-size: 1rem; white-space: nowrap; }
+.math-row input { width: 92px; flex-shrink: 0; }
+.refresh-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 1.2rem; line-height: 1; padding: 0.4rem; }
 
-/* Two-column grid for Name + Email side by side */
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* two equal columns ("1 fraction" each) */
-  gap: 1rem;
-}
+.form-msg { margin-top: 1.25rem; padding: 0.9rem 1.1rem; border-radius: 10px; font-size: 0.96rem; display: none; }
+.form-msg.success { background: #e3f5e9; color: #1d6b3a; display: block; }
+.form-msg.error   { background: #fce6e6; color: #a32020; display: block; }
 
-/* On small screens (phones), stack Name and Email into a single column */
-@media (max-width: 520px) {
-  .form-grid { grid-template-columns: 1fr; }
-  /* @media is a "breakpoint" — these styles only apply when the screen is
-     520px wide or narrower */
-}
 
-/* The math captcha row: question text + number input + refresh button in a row */
-.math-row {
-  display: flex;                /* lay children in a row */
-  align-items: center;          /* vertically center them */
-  gap: 0.75rem;
-  margin-top: 0.3rem;
-}
-.math-question {
-  font-weight: 600;
-  font-size: 0.97rem;
-  white-space: nowrap;          /* prevent the question text from wrapping to a new line */
-}
-.math-row input { width: 90px; flex-shrink: 0; } /* fixed small width for the answer box */
-.refresh-btn {
-  background: none;             /* invisible background — just shows the ↻ character */
-  border: none;
-  cursor: pointer;
-  color: var(--accent);
-  font-size: 1.1rem;
-  line-height: 1;
-}
-
-/* Success and error message shown after form submission */
-.form-msg {
-  margin-top: 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: 7px;
-  font-size: 0.95rem;
-  display: none;                /* hidden by default — JavaScript adds .success or .error to show it */
-}
-.form-msg.success { background: #dcfce7; color: #166534; display: block; } /* green */
-.form-msg.error   { background: #fee2e2; color: #991b1b; display: block; } /* red */
+/* =============================================================================
+   PRIVACY
+   ============================================================================= */
+.legal h2 { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.015em; margin: 2.25rem 0 0.6rem; }
+.legal p { color: var(--muted); margin-bottom: 0.8rem; max-width: 70ch; }
+.legal p.page-eyebrow { color: var(--accent); }
+.legal p strong { color: var(--ink); }
+.legal a { color: var(--accent); text-decoration: none; }
+.legal a:hover { text-decoration: underline; }
+.legal .updated { color: var(--faint); font-size: 0.9rem; margin-bottom: 2.5rem; }
