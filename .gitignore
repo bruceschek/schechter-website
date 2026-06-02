@@ -3,3 +3,7 @@ node_modules
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# macOS / Office temp files
+.DS_Store
+~$*
