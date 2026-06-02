@@ -1,38 +1,13 @@
 {
-  "name": "005-schechter.com-website",
+  "name": "schechter-website",
   "version": "1.0.0",
-  "description": "Migration of www.schechter.com from GoDaddy to AWS.",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "description": "www.schechter.com — static website hosted on AWS Amplify",
   "scripts": {
-    "start": "node src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bruceschek/schechter-website.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/bruceschek/schechter-website/issues"
-  },
-  "homepage": "https://github.com/bruceschek/schechter-website#readme",
-  "devDependencies": {
-    "@aws-amplify/backend": "^1.22.0",
-    "@aws-amplify/backend-cli": "^1.8.2",
-    "aws-cdk-lib": "^2.234.1",
-    "constructs": "^10.6.0",
-    "esbuild": "^0.28.0",
-    "tsx": "^4.22.3",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "@aws-sdk/client-ses": "^3.1053.0",
-    "aws-amplify": "^6.17.0"
-  }
+  "license": "ISC"
 }
