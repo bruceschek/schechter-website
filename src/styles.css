@@ -134,7 +134,8 @@ p { text-wrap: pretty; }
    HERO — bold headline on white, then the clean SF photo below (no overlay)
    ============================================================================= */
 .hero-text {
-  padding: 4.5rem 0 3rem;
+  padding-top: 4.5rem;
+  padding-bottom: 3rem;
 }
 .hero-text .hero-tagline {
   font-size: clamp(1.3rem, 2.6vw, 1.7rem);
