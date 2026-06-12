@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tech Test Page — The Schechter Company</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .test-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      background: #fff;
+    }
+    .test-card h3 { margin: 0 0 0.35rem; }
+    .test-card .api-desc { color: var(--muted); font-size: 0.95rem; margin: 0 0 1rem; }
+    .test-card .api-url {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      word-break: break-all;
+      display: block;
+      margin-bottom: 1rem;
+    }
+    .test-meta { font-size: 0.85rem; color: var(--muted); margin: 0.75rem 0 0; }
+    .test-meta .ok { color: #1a7f37; font-weight: 600; }
+    .test-meta .err { color: #b42318; font-weight: 600; }
+    .test-output {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-alt, #f5f5f7);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 320px;
+      overflow: auto;
+    }
+    .test-result {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-alt, #f5f5f7);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 1rem;
+    }
+    .custom-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .custom-row input {
+      flex: 1;
+      min-width: 240px;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 0.9rem;
+    }
+    .btn-fetch {
+      display: inline-block;
+      padding: 0.6rem 1.4rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-fetch:hover { background: var(--accent-deep); }
+    .btn-fetch:disabled { opacity: 0.5; cursor: wait; }
+  </style>
+</head>
+<body>
+
+  <nav class="site">
+    <div class="nav-inner">
+      <a class="nav-brand" href="index.html">The Schechter Company</a>
+      <ul class="nav-links">
+        <li><a href="books.html">Books</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page">
+    <p class="page-eyebrow">Internal</p>
+    <h1>Tech Test Page</h1>
+    <p class="page-sub">A sandbox for testing browser-side fetches against public APIs. Not linked from site navigation; marked noindex.</p>
+
+    <!-- 1. Random quote -->
+    <div class="test-card">
+      <h3>Random Quote</h3>
+      <p class="api-desc">Pulls a random quote from DummyJSON — a free, key-less JSON API.</p>
+      <code class="api-url">GET https://dummyjson.com/quotes/random</code>
+      <button class="btn-fetch" data-test="quote">Fetch quote</button>
+      <div class="test-result" id="quote-result"></div>
+      <p class="test-meta" id="quote-meta"></p>
+      <pre class="test-output" id="quote-output"></pre>
+    </div>
+
+    <!-- 2. Weather -->
+    <div class="test-card">
+      <h3>Current Weather — Bay Area</h3>
+      <p class="api-desc">Live conditions for Palo Alto from Open-Meteo (free, no API key).</p>
+      <code class="api-url">GET https://api.open-meteo.com/v1/forecast?latitude=37.44&amp;longitude=-122.14&amp;current_weather=true&amp;temperature_unit=fahrenheit</code>
+      <button class="btn-fetch" data-test="weather">Fetch weather</button>
+      <div class="test-result" id="weather-result"></div>
+      <p class="test-meta" id="weather-meta"></p>
+      <pre class="test-output" id="weather-output"></pre>
+    </div>
+
+    <!-- 3. Public IP -->
+    <div class="test-card">
+      <h3>Your Public IP</h3>
+      <p class="api-desc">Returns the IP address your browser presents to the internet, via ipify.</p>
+      <code class="api-url">GET https://api.ipify.org?format=json</code>
+      <button class="btn-fetch" data-test="ip">Fetch IP</button>
+      <div class="test-result" id="ip-result"></div>
+      <p class="test-meta" id="ip-meta"></p>
+      <pre class="test-output" id="ip-output"></pre>
+    </div>
+
+    <!-- 4. GitHub repo stats -->
+    <div class="test-card">
+      <h3>GitHub Repo Stats</h3>
+      <p class="api-desc">Public repository metadata from the GitHub REST API (no auth needed for public repos).</p>
+      <code class="api-url">GET https://api.github.com/repos/anthropics/claude-code</code>
+      <button class="btn-fetch" data-test="github">Fetch repo stats</button>
+      <div class="test-result" id="github-result"></div>
+      <p class="test-meta" id="github-meta"></p>
+      <pre class="test-output" id="github-output"></pre>
+    </div>
+
+    <!-- 5. Custom URL -->
+    <div class="test-card">
+      <h3>Custom API Fetch</h3>
+      <p class="api-desc">Enter any GET endpoint URL. The raw response is shown below. Note: the target must allow cross-origin (CORS) requests, or the browser will block it.</p>
+      <div class="custom-row">
+        <input type="url" id="custom-url" placeholder="https://api.example.com/endpoint" value="https://dummyjson.com/products/1" />
+        <button class="btn-fetch" data-test="custom">Fetch</button>
+      </div>
+      <div class="test-result" id="custom-result"></div>
+      <p class="test-meta" id="custom-meta"></p>
+      <pre class="test-output" id="custom-output"></pre>
+    </div>
+  </div>
+
+  <footer class="site">
+    <div class="shell">
+      <div class="copy">© 2026 The Schechter Company. All rights reserved.</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="books.html">Books</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    // Each test: a URL (or function returning one) and a summarizer that turns
+    // the JSON payload into a one-line human-readable result.
+    const TESTS = {
+      quote: {
+        url: () => 'https://dummyjson.com/quotes/random',
+        summarize: (d) => `“${d.quote}” — ${d.author}`,
+      },
+      weather: {
+        url: () => 'https://api.open-meteo.com/v1/forecast?latitude=37.44&longitude=-122.14&current_weather=true&temperature_unit=fahrenheit&wind_speed_unit=mph',
+        summarize: (d) => {
+          const w = d.current_weather;
+          return `Palo Alto: ${w.temperature}°F, wind ${w.windspeed} mph (as of ${w.time})`;
+        },
+      },
+      ip: {
+        url: () => 'https://api.ipify.org?format=json',
+        summarize: (d) => `Your public IP is ${d.ip}`,
+      },
+      github: {
+        url: () => 'https://api.github.com/repos/anthropics/claude-code',
+        summarize: (d) => `${d.full_name}: ★ ${d.stargazers_count.toLocaleString()} stars, ${d.open_issues_count.toLocaleString()} open issues, last pushed ${new Date(d.pushed_at).toLocaleDateString()}`,
+      },
+      custom: {
+        url: () => document.getElementById('custom-url').value.trim(),
+        summarize: null, // raw output only
+      },
+    };
+
+    async function runTest(name, btn) {
+      const test    = TESTS[name];
+      const url     = test.url();
+      const result  = document.getElementById(`${name}-result`);
+      const meta    = document.getElementById(`${name}-meta`);
+      const output  = document.getElementById(`${name}-output`);
+
+      result.style.display = 'none';
+      output.style.display = 'none';
+      meta.innerHTML = 'Fetching…';
+
+      if (!url) {
+        meta.innerHTML = '<span class="err">Please enter a URL.</span>';
+        return;
+      }
+
+      btn.disabled = true;
+      const t0 = performance.now();
+
+      try {
+        const res = await fetch(url);
+        const ms  = Math.round(performance.now() - t0);
+        const text = await res.text();
+
+        let data = null;
+        let pretty = text;
+        try { data = JSON.parse(text); pretty = JSON.stringify(data, null, 2); } catch {}
+
+        const statusClass = res.ok ? 'ok' : 'err';
+        meta.innerHTML = `<span class="${statusClass}">HTTP ${res.status}</span> · ${ms} ms · ${text.length.toLocaleString()} bytes`;
+
+        if (test.summarize && data && res.ok) {
+          result.textContent = test.summarize(data);
+          result.style.display = 'block';
+        }
+        output.textContent = pretty.length > 20000 ? pretty.slice(0, 20000) + '\n… (truncated)' : pretty;
+        output.style.display = 'block';
+      } catch (err) {
+        const ms = Math.round(performance.now() - t0);
+        meta.innerHTML = `<span class="err">Request failed</span> · ${ms} ms — ${err.message}. (Often a CORS restriction or network issue.)`;
+      }
+
+      btn.disabled = false;
+    }
+
+    document.querySelectorAll('.btn-fetch').forEach((btn) => {
+      btn.addEventListener('click', () => runTest(btn.dataset.test, btn));
+    });
+
+    document.getElementById('custom-url').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runTest('custom', document.querySelector('[data-test="custom"]'));
+    });
+  </script>
+</body>
+</html>
