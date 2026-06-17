@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory — The Schechter Company</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .test-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      background: #fff;
+    }
+    .test-card h3 { margin: 0 0 0.35rem; }
+    .test-card .api-desc { color: var(--muted); font-size: 0.95rem; margin: 0 0 1rem; }
+    .test-card .api-url {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      word-break: break-all;
+      display: block;
+      margin-bottom: 1rem;
+    }
+    .test-meta { font-size: 0.85rem; color: var(--muted); margin: 0.75rem 0 0; }
+    .test-meta .ok { color: #1a7f37; font-weight: 600; }
+    .test-meta .err { color: #b42318; font-weight: 600; }
+    .test-output {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-alt, #f5f5f7);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 320px;
+      overflow: auto;
+    }
+    .test-result {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-alt, #f5f5f7);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 1rem;
+      white-space: pre-wrap;
+    }
+    .field-row { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.9rem; }
+    .field-row label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    .field-row input,
+    .field-row textarea {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+    }
+    .field-row textarea { min-height: 90px; resize: vertical; }
+    .btn-fetch {
+      display: inline-block;
+      padding: 0.6rem 1.4rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-fetch:hover { background: var(--accent-deep); }
+    .btn-fetch:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: none;
+      color: var(--accent);
+      border: 1px solid var(--line);
+    }
+    .btn-secondary:hover { background: var(--surface-alt, #f5f5f7); color: var(--accent-deep); }
+    .auth-status { font-size: 0.9rem; margin: 0 0 1rem; }
+    .auth-status .ok { color: #1a7f37; font-weight: 600; }
+    .auth-status .err { color: #b42318; font-weight: 600; }
+    #memory-card[aria-disabled="true"] { opacity: 0.55; pointer-events: none; }
+    .reply-command {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      border-radius: 5px;
+      padding: 0.1rem 0.45rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="site">
+    <div class="nav-inner">
+      <a class="nav-brand" href="index.html">The Schechter Company</a>
+      <ul class="nav-links">
+        <li><a href="books.html">Books</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page">
+    <p class="page-eyebrow">Internal</p>
+    <h1>Memory</h1>
+    <p class="page-sub">A browser client for the Memory assistant — the same API and account as the iOS app. Sign in with your app email and password. Not linked from site navigation; marked noindex.</p>
+
+    <!-- 1. Sign in -->
+    <div class="test-card" id="auth-card">
+      <h3>Sign in</h3>
+      <p class="api-desc">Cognito sign-in (SRP). Uses the same user pool as the Memory iOS app.</p>
+      <p class="auth-status" id="auth-status">Not signed in.</p>
+      <div id="login-form">
+        <div class="field-row">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" autocomplete="username" placeholder="you@example.com" />
+        </div>
+        <div class="field-row">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••" />
+        </div>
+        <button class="btn-fetch" id="btn-login">Sign in</button>
+      </div>
+      <button class="btn-fetch btn-secondary" id="btn-logout" style="display:none;">Sign out</button>
+    </div>
+
+    <!-- 2. Memory -->
+    <div class="test-card" id="memory-card" aria-disabled="true">
+      <h3>Ask Memory</h3>
+      <p class="api-desc">Send a message to the Memory assistant. The conversation state lives server-side — just type and send.</p>
+      <code class="api-url">POST https://fjic2zgsqf.execute-api.us-west-2.amazonaws.com/prod/memory</code>
+      <div class="field-row">
+        <label for="memory-text">Message</label>
+        <textarea id="memory-text" placeholder="e.g. Remind me to call the dentist next Tuesday"></textarea>
+      </div>
+      <button class="btn-fetch" id="btn-send" data-test="memory">Send</button>
+      <div class="test-result" id="memory-result"></div>
+      <p class="test-meta" id="memory-meta"></p>
+      <pre class="test-output" id="memory-output"></pre>
+    </div>
+  </div>
+
+  <footer class="site">
+    <div class="shell">
+      <div class="copy">© 2026 The Schechter Company. All rights reserved.</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="books.html">Books</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- amazon-cognito-identity-js (UMD build) → exposes global AmazonCognitoIdentity -->
+  <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+  <script>
+    // ---- Config (from live MemoryApp infra, us-west-2) ----
+    const MEMORY_API   = 'https://fjic2zgsqf.execute-api.us-west-2.amazonaws.com/prod/memory';
+    const USER_POOL_ID = 'us-west-2_5CFZClYPo';
+    const CLIENT_ID    = '2ai4o11chs71s82op7sjirh2ih';
+
+    const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIdentity;
+    const userPool = new CognitoUserPool({ UserPoolId: USER_POOL_ID, ClientId: CLIENT_ID });
+
+    let idToken = null; // current Cognito ID token (JWT)
+
+    // ---- DOM ----
+    const els = {
+      authStatus: document.getElementById('auth-status'),
+      loginForm:  document.getElementById('login-form'),
+      email:      document.getElementById('auth-email'),
+      password:   document.getElementById('auth-password'),
+      btnLogin:   document.getElementById('btn-login'),
+      btnLogout:  document.getElementById('btn-logout'),
+      memoryCard: document.getElementById('memory-card'),
+      memoryText: document.getElementById('memory-text'),
+      btnSend:    document.getElementById('btn-send'),
+      result:     document.getElementById('memory-result'),
+      meta:       document.getElementById('memory-meta'),
+      output:     document.getElementById('memory-output'),
+    };
+
+    // ---- Auth UI state ----
+    function setSignedIn(email) {
+      els.authStatus.innerHTML = `<span class="ok">Signed in</span> as ${email}.`;
+      els.loginForm.style.display = 'none';
+      els.btnLogout.style.display = 'inline-block';
+      els.memoryCard.setAttribute('aria-disabled', 'false');
+    }
+
+    function setSignedOut(message) {
+      idToken = null;
+      els.authStatus.innerHTML = message || 'Not signed in.';
+      els.loginForm.style.display = 'block';
+      els.btnLogout.style.display = 'none';
+      els.btnLogin.disabled = false;
+      els.memoryCard.setAttribute('aria-disabled', 'true');
+    }
+
+    // ---- Restore an existing session on load (tokens persisted in localStorage) ----
+    function restoreSession() {
+      const user = userPool.getCurrentUser();
+      if (!user) return;
+      user.getSession((err, session) => {
+        if (err || !session || !session.isValid()) return;
+        idToken = session.getIdToken().getJwtToken();
+        setSignedIn(user.getUsername());
+      });
+    }
+
+    // ---- Sign in (SRP) ----
+    function signIn() {
+      const email = els.email.value.trim();
+      const password = els.password.value;
+      if (!email || !password) {
+        els.authStatus.innerHTML = '<span class="err">Enter email and password.</span>';
+        return;
+      }
+      els.btnLogin.disabled = true;
+      els.authStatus.textContent = 'Signing in…';
+
+      const user = new CognitoUser({ Username: email, Pool: userPool });
+      const authDetails = new AuthenticationDetails({ Username: email, Password: password });
+
+      user.authenticateUser(authDetails, {
+        onSuccess: (session) => {
+          idToken = session.getIdToken().getJwtToken();
+          els.password.value = '';
+          setSignedIn(email);
+        },
+        onFailure: (err) => {
+          setSignedOut(`<span class="err">Sign-in failed:</span> ${err.message || err}`);
+        },
+        newPasswordRequired: () => {
+          setSignedOut('<span class="err">This account requires a new password. Please set it in the iOS app first.</span>');
+        },
+      });
+    }
+
+    function signOut() {
+      const user = userPool.getCurrentUser();
+      if (user) user.signOut();
+      setSignedOut('Signed out.');
+    }
+
+    // ---- Call the /memory API ----
+    async function sendMemory() {
+      const text = els.memoryText.value.trim();
+      els.result.style.display = 'none';
+      els.output.style.display = 'none';
+
+      if (!idToken) {
+        els.meta.innerHTML = '<span class="err">Not signed in.</span>';
+        return;
+      }
+      if (!text) {
+        els.meta.innerHTML = '<span class="err">Enter a message.</span>';
+        return;
+      }
+
+      els.btnSend.disabled = true;
+      els.meta.textContent = 'Sending…';
+      const t0 = performance.now();
+
+      try {
+        const res = await fetch(MEMORY_API, {
+          method: 'POST',
+          credentials: 'omit', // ACAO is '*', so credentials must be omitted
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ text_from_user: text }),
+        });
+
+        const ms   = Math.round(performance.now() - t0);
+        const raw  = await res.text();
+        let data = null, pretty = raw;
+        try { data = JSON.parse(raw); pretty = JSON.stringify(data, null, 2); } catch {}
+
+        const statusClass = res.ok ? 'ok' : 'err';
+        els.meta.innerHTML = `<span class="${statusClass}">HTTP ${res.status}</span> · ${ms} ms`;
+
+        // Contract: 200 (incl. soft failures) → show reply_to_user. Non-200 → error;
+        // surface reply_to_user if present, else error field.
+        const reply = data && (data.reply_to_user || data.error);
+        if (reply) {
+          const cmd = data.command ? `<span class="reply-command">${data.command}</span>\n` : '';
+          els.result.innerHTML = cmd;
+          els.result.append(document.createTextNode(reply));
+          els.result.style.display = 'block';
+        }
+        els.output.textContent = pretty.length > 20000 ? pretty.slice(0, 20000) + '\n… (truncated)' : pretty;
+        els.output.style.display = 'block';
+
+        if (res.status === 401) {
+          setSignedOut('<span class="err">Session expired — please sign in again.</span>');
+        }
+      } catch (err) {
+        const ms = Math.round(performance.now() - t0);
+        els.meta.innerHTML = `<span class="err">Request failed</span> · ${ms} ms — ${err.message}.`;
+      }
+
+      els.btnSend.disabled = false;
+    }
+
+    // ---- Wire up ----
+    els.btnLogin.addEventListener('click', signIn);
+    els.btnLogout.addEventListener('click', signOut);
+    els.btnSend.addEventListener('click', sendMemory);
+    els.password.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
+    els.memoryText.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendMemory();
+    });
+
+    restoreSession();
+  </script>
+</body>
+</html>
