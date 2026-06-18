@@ -1,0 +1,324 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Rapid Recall — voice-driven self-quiz iOS backend.
+  Lambda (Python 3.12) + API Gateway + Cognito + DynamoDB + S3.
+  No Lambda layers required — all dependencies are stdlib or boto3.
+
+# =============================================================================
+# HOW TO DEPLOY
+# =============================================================================
+# Prerequisites: AWS SAM CLI (brew install aws-sam-cli), awscli v2, an S3
+# bucket in the target account for SAM's deployment artifacts.
+#
+# First deploy (creates everything):
+#   export ASSUME_ROLE_ARN=arn:aws:iam::669034310017:role/OrganizationAccountAccessRole
+#   eval $(aws sts assume-role --role-arn $ASSUME_ROLE_ARN \
+#     --role-session-name sam-deploy \
+#     --query 'Credentials.{AWS_ACCESS_KEY_ID:AccessKeyId,AWS_SECRET_ACCESS_KEY:SecretAccessKey,AWS_SESSION_TOKEN:SessionToken}' \
+#     --output text | awk '{print "export "$1"="$2}')
+#   sam build -t infra/template.yaml
+#   sam deploy --guided -t infra/template.yaml   # answers saved to samconfig.toml
+#
+# Subsequent code + infra updates (run from the MemoryApp/ repo root):
+#   sam build -t infra/template.yaml && sam deploy -t infra/template.yaml
+#
+# Code-only fast path (no infra changes):
+#   ./zz.sh                      # still works — uploads lambda.zip directly
+#
+# AFTER FIRST DEPLOY — two manual steps (printed by this template as Outputs):
+#   1. Store the OpenAI key in SSM (see PROVISIONING.md)
+#   2. Create your Cognito login user (see PROVISIONING.md)
+#   3. Paste the Output values into the iOS app Swift source files
+#      (NetworkService.swift, AmplifyConfigurator.swift)
+#
+# WHAT CANNOT BE IN THIS TEMPLATE:
+#   - Bedrock model access agreements (no CloudFormation resource type exists)
+#     → Run: aws bedrock create-foundation-model-agreement for each routing region
+#       (us-east-1, us-east-2, us-west-2) — see PROVISIONING.md
+#   - SSM SecureString values (CloudFormation cannot write SecureString parameters)
+#   - Individual Cognito user accounts
+# =============================================================================
+
+# ---- Configurable parameters ------------------------------------------------
+Parameters:
+
+  Env:
+    Type: String
+    Default: prod
+    AllowedValues: [prod, dev]
+    Description: Deployment environment (used in resource names and SSM path)
+
+  TableName:
+    Type: String
+    Default: memory-dev
+    Description: DynamoDB table name for Q&A storage
+
+  OpenAIKeySSMPath:
+    Type: String
+    Default: /rapidrecall/prod/openai-api-key
+    Description: SSM SecureString path where the OpenAI API key is stored
+
+# ---- Globals applied to every Lambda function in the template ---------------
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [x86_64]
+    MemorySize: 1024
+    Timeout: 120
+    # No environment variables — the OpenAI key is read from SSM at runtime.
+    # The Lambda role (below) grants ssm:GetParameter on the key path.
+
+# =============================================================================
+# RESOURCES
+# =============================================================================
+Resources:
+
+  # ---------------------------------------------------------------------------
+  # 1. DynamoDB — Q&A storage
+  #    PK: username (Cognito sub UUID)   SK: id (UUID per Q&A item)
+  # ---------------------------------------------------------------------------
+  QandATable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain   # never drop data on stack delete
+    Properties:
+      TableName: !Ref TableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: username
+          AttributeType: S
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: username
+          KeyType: HASH
+        - AttributeName: id
+          KeyType: RANGE
+
+  # ---------------------------------------------------------------------------
+  # 2. S3 — conversation state cache (StateCache persisted between invocations)
+  #    Name includes account ID so it's globally unique without extra config.
+  # ---------------------------------------------------------------------------
+  StateCacheBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "bruceschechter-memory-ms-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+  # ---------------------------------------------------------------------------
+  # 3. Cognito User Pool — email-based sign-in for the iOS app
+  # ---------------------------------------------------------------------------
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain   # don't delete user accounts on stack teardown
+    Properties:
+      UserPoolName: memory-sprint-pool
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      MfaConfiguration: "OFF"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: false
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: MemoryAuth
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 365   # 1 year — how long before the app forces re-login
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders: [COGNITO]
+
+  # ---------------------------------------------------------------------------
+  # 4. API Gateway (REST) + Cognito authorizer
+  #    SAM's AWS::Serverless::Api wires the authorizer and the Lambda
+  #    invoke permission automatically.
+  # ---------------------------------------------------------------------------
+  MemoryApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: memory03-api
+      StageName: !Ref Env
+      Auth:
+        DefaultAuthorizer: CognitoAuth
+        Authorizers:
+          CognitoAuth:
+            UserPoolArn: !GetAtt UserPool.Arn
+            Identity:
+              Header: Authorization   # iOS sends "Bearer <id-token>" here
+
+  # ---------------------------------------------------------------------------
+  # 5. Lambda function
+  #    CodeUri points at the sibling memory03-rawpython/ folder (the *.py files).
+  #    No layers — numpy replaced with stdlib math, openai SDK with urllib.
+  #    Run `sam build -t infra/template.yaml` from the MemoryApp/ repo root.
+  # ---------------------------------------------------------------------------
+  MemoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: memory03
+      Handler: lambda_function.lambda_handler
+      CodeUri: ../memory03-rawpython/
+      Role: !GetAtt ExecutionRole.Arn
+      Events:
+        ApiPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MemoryApi
+            Path: /memory
+            Method: POST
+        # CORS preflight. Browsers send an unauthenticated OPTIONS request
+        # before the actual POST. It carries no Authorization header, so it
+        # MUST bypass the Cognito DefaultAuthorizer or it gets 401'd and the
+        # browser blocks the call. Routes to the Lambda's existing OPTIONS
+        # handler (lambda_function.py), which returns 204 + CORS_HEADERS.
+        ApiOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MemoryApi
+            Path: /memory
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+
+  # ---------------------------------------------------------------------------
+  # 6. IAM execution role
+  #    Explicit role (not SAM auto-generated) so permissions are exact and
+  #    auditable. Grants least-privilege access to each service the Lambda uses.
+  # ---------------------------------------------------------------------------
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: memory03-execution-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: memory03-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+
+              - Sid: DynamoDB
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:DescribeTable
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                Resource:
+                  - !GetAtt QandATable.Arn
+                  - !Sub "${QandATable.Arn}/index/*"
+
+              - Sid: S3StateCache
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt StateCacheBucket.Arn
+                  - !Sub "${StateCacheBucket.Arn}/*"
+
+              # Bedrock Converse API — Claude Haiku 4.5 via cross-region
+              # inference profile (routes to us-east-1, us-east-2, us-west-2).
+              # NOTE: model access (marketplace agreement) must be accepted
+              # separately in each routing region — no CloudFormation resource exists.
+              - Sid: BedrockConverse
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:Converse
+                  - bedrock:ConverseStream
+                Resource:
+                  - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0"
+                  - "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+
+              # SES — used by the send_csv command (emails Q&A CSV to user)
+              - Sid: SESsendCsv
+                Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: "*"
+
+              # SSM — OpenAI API key stored as SecureString
+              - Sid: SSMOpenAIKey
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${OpenAIKeySSMPath}"
+
+              # KMS — decrypt the SSM SecureString (AWS-managed key)
+              - Sid: KMSDecryptSSM
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub "ssm.${AWS::Region}.amazonaws.com"
+
+# =============================================================================
+# OUTPUTS — paste these into the iOS app after deploy
+# =============================================================================
+Outputs:
+
+  ApiUrl:
+    Description: "Paste into NetworkService.swift → NetworkConfig.lambdaEndpoint"
+    Value: !Sub "https://${MemoryApi}.execute-api.${AWS::Region}.amazonaws.com/${Env}/memory"
+
+  UserPoolId:
+    Description: "Paste into AmplifyConfigurator.swift → PoolId"
+    Value: !Ref UserPool
+
+  UserPoolClientId:
+    Description: "Paste into AmplifyConfigurator.swift → AppClientId"
+    Value: !Ref UserPoolClient
+
+  TableName:
+    Description: "DynamoDB table (data keyed by Cognito sub UUID)"
+    Value: !Ref QandATable
+
+  StateCacheBucket:
+    Description: "S3 bucket for conversation state cache"
+    Value: !Ref StateCacheBucket

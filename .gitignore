@@ -7,3 +7,6 @@ amplifyconfiguration*
 # macOS / Office temp files
 .DS_Store
 ~$*
+
+# site archive (large, not tracked)
+docs/Schechter.com site.zip
