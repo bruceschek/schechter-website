@@ -48,18 +48,25 @@
       border-bottom: 1px solid var(--line);
     }
     .app-title { font-size: 1.15rem; font-weight: 700; color: var(--navy); }
-    .signout {
+    .header-actions {
       position: absolute;
       right: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .header-link {
       background: none;
       border: none;
+      padding: 0;
       color: var(--user-blue);
       font: inherit;
       font-size: 0.9rem;
       cursor: pointer;
       display: none;
     }
-    .signout:hover { text-decoration: underline; }
+    .header-link:hover { text-decoration: underline; }
+    .header-link:disabled { opacity: 0.5; cursor: wait; text-decoration: none; }
 
     /* Sign-in screen */
     .welcome {
@@ -187,7 +194,10 @@
   <div class="app">
     <div class="app-header">
       <span class="app-title">Memory Sprint</span>
-      <button class="signout" id="btn-signout">Sign out</button>
+      <div class="header-actions">
+        <button class="header-link" id="btn-export">Email my Q&amp;A</button>
+        <button class="header-link" id="btn-signout">Sign out</button>
+      </div>
     </div>
 
     <!-- Sign-in screen -->
@@ -216,6 +226,11 @@
   <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
   <script>
     // ---- Service config (same account as the iOS app) ----
+    // Conforms to the Memory Lambda API contract; a replica of the authoritative
+    // spec is kept at ../docs/memory-api.openapi.yaml. The client sends one raw
+    // utterance in text_from_user and surfaces reply_to_user (or error) for every
+    // status code, so all documented commands and magic literals (RESET_CACHE,
+    // send_csv) work just by sending the text. Re-sync with /sync-memory-api-spec.
     const MEMORY_API   = 'https://fjic2zgsqf.execute-api.us-west-2.amazonaws.com/prod/memory';
     const USER_POOL_ID = 'us-west-2_5CFZClYPo';
     const CLIENT_ID    = '2ai4o11chs71s82op7sjirh2ih';
@@ -227,6 +242,7 @@
 
     const els = {
       header:    document.querySelector('.app-header'),
+      export:    document.getElementById('btn-export'),
       signout:   document.getElementById('btn-signout'),
       welcome:   document.getElementById('welcome'),
       email:     document.getElementById('email'),
@@ -246,6 +262,7 @@
       els.conversation.style.display = 'flex';
       els.composer.style.display = 'flex';
       els.signout.style.display = 'block';
+      els.export.style.display = 'block';
       els.message.focus();
     }
 
@@ -255,6 +272,7 @@
       els.conversation.style.display = 'none';
       els.composer.style.display = 'none';
       els.signout.style.display = 'none';
+      els.export.style.display = 'none';
       els.signin.disabled = false;
       // clear any prior conversation
       els.conversation.querySelectorAll('.msg-row').forEach((n) => n.remove());
@@ -343,15 +361,15 @@
       showSignedOut('', false);
     }
 
-    // ---- Send a message ----
-    async function send() {
-      const text = els.message.value.trim();
-      if (!text) return;
+    // ---- Send one utterance to the API ----
+    // Per the contract, every status code carries reply_to_user (or error); we
+    // surface that and treat 401 as an expired session. echoUser=false is used
+    // for magic literals (e.g. send_csv) so the literal never shows as a bubble.
+    async function postUtterance(text, { echoUser }) {
       if (!idToken) { showSignedOut('Please sign in again.', true); return; }
-
-      addMessage('user', text);
-      els.message.value = '';
+      if (echoUser) addMessage('user', text);
       els.send.disabled = true;
+      els.export.disabled = true;
       const thinking = addThinking();
 
       try {
@@ -379,13 +397,27 @@
         addMessage('assistant', 'Something went wrong. Please check your connection and try again.');
       } finally {
         els.send.disabled = false;
+        els.export.disabled = false;
         els.message.focus();
       }
+    }
+
+    function send() {
+      const text = els.message.value.trim();
+      if (!text) return;
+      els.message.value = '';
+      postUtterance(text, { echoUser: true });
+    }
+
+    // Magic literal: emails a CSV of the user's Q&A pairs (GENERATE_CSV_OF_QA).
+    function exportCsv() {
+      postUtterance('send_csv', { echoUser: false });
     }
 
     // ---- Wire up ----
     els.signin.addEventListener('click', signIn);
     els.signout.addEventListener('click', signOut);
+    els.export.addEventListener('click', exportCsv);
     els.send.addEventListener('click', send);
     els.password.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
     els.message.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });

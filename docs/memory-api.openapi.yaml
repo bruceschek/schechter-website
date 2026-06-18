@@ -1,0 +1,433 @@
+openapi: 3.0.3
+
+# =============================================================================
+# Rapid Recall — Memory Lambda API
+#
+# Single endpoint backed by the `memory03` AWS Lambda (us-west-2) behind API
+# Gateway. The iOS app (../memory) is the canonical client. This spec is hand-
+# maintained from lambda_function.py; when you change a request/response shape,
+# a status code, or the command vocabulary, update this file AND the API
+# Contract table in ../CLAUDE.md in the same commit.
+#
+# How a request flows: the client POSTs one natural-language utterance in
+# `text_from_user`. Unless it is one of the magic literals (RESET_CACHE /
+# send_csv), the Lambda runs it through Bedrock LLM classification into one
+# command (NEW, UPDATE, REMIND, DELETE, QUIZ, ANSWER, INSTRUCTIONS) and
+# dispatches accordingly. A thin conversation state machine (stored per-user in
+# S3) can override classification when a multi-turn flow is parked (duplicate
+# decision, awaiting quiz answer).
+# =============================================================================
+
+info:
+  title: Rapid Recall — Memory Lambda API
+  version: "1.0.0"
+  description: |
+    Backend for the Rapid Recall (a.k.a. Memory Sprint) fact-memorization app.
+    One POST endpoint accepts a free-text user utterance and returns a friendly
+    reply plus the command the backend resolved it to.
+
+    **Authentication.** Every request must carry a Cognito **ID token** as a
+    Bearer token in the `Authorization` header. API Gateway's Cognito User Pool
+    authorizer validates it and injects the `sub` (used as the per-user
+    partition key) and `email` claims; the Lambda never trusts a client-supplied
+    username.
+
+    **Non-standard status codes.** Because the Lambda uses proxy integration,
+    the `statusCode` it sets is returned verbatim. Two are app-specific and not
+    part of the HTTP registry: `513` (LLM/Bedrock call failed) and `520`
+    (backend could not resolve a command). Clients should treat any non-200 as
+    an error and surface `reply_to_user` (or `error`) to the user.
+
+    **Response envelopes.** The happy path and most soft errors return
+    `{reply_to_user, command, request_id}`. Hard auth/validation failures (401,
+    missing-params 400) return `{error}` instead. Both shapes are documented per
+    response below.
+  contact:
+    name: Bruce Schechter
+    email: bruce@schechter.com
+
+servers:
+  - url: https://fjic2zgsqf.execute-api.us-west-2.amazonaws.com/prod
+    description: Production (API Gateway → memory03 Lambda, us-west-2)
+
+tags:
+  - name: memory
+    description: The single conversational endpoint.
+
+paths:
+  /memory:
+    post:
+      tags: [memory]
+      operationId: postMemory
+      summary: Submit one user utterance; get a reply and the resolved command.
+      description: |
+        Send one natural-language message. The backend either:
+
+        * intercepts a **magic literal** before any LLM call —
+          `RESET_CACHE` (case-insensitive) clears the user's conversation
+          state, and `send_csv` (case-insensitive) emails a CSV of all the
+          user's Q&A pairs; or
+        * continues a **parked multi-turn flow** if the user's previous turn
+          left the conversation awaiting a duplicate decision or a quiz answer;
+          or
+        * runs the message through **LLM classification** into one command and
+          dispatches it.
+
+        The resolved command is echoed back in `command`.
+      security:
+        - cognitoBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryRequest'
+            examples:
+              addFact:
+                summary: Add a new fact (classified NEW)
+                value:
+                  text_from_user: "The capital of France is Paris"
+              startQuiz:
+                summary: Start a quiz (classified QUIZ)
+                value:
+                  text_from_user: "quiz me"
+              answerQuiz:
+                summary: Answer a posed quiz question (routed to ANSWER)
+                value:
+                  text_from_user: "Gallstone"
+              resetCache:
+                summary: Magic literal — wipe conversation state
+                value:
+                  text_from_user: "RESET_CACHE"
+              sendCsv:
+                summary: Magic literal — email a CSV export of all Q&A pairs
+                value:
+                  text_from_user: "send_csv"
+      responses:
+        "200":
+          description: |
+            Success. `command` names the resolved action.
+
+            **Soft outcomes also return 200.** Anything the backend understood
+            and handled — even when it couldn't act — comes back as 200 with a
+            helpful `reply_to_user`: quiz answer grading, a weak/again-please
+            similarity match on UPDATE/DELETE, an instruction it couldn't parse,
+            "no active quiz to answer", and "you have no questions to quiz on
+            yet". Only malformed requests (400/401) and genuine system/LLM
+            faults (500/513/520) are non-2xx. See docs/spec-conformance.md for
+            the status-code taxonomy.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryReply'
+              examples:
+                newPair:
+                  summary: NEW
+                  value:
+                    reply_to_user: "Added — 'What is the capital of France?' → 'Paris'."
+                    command: "NEW"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                quizQuestion:
+                  summary: QUIZ (a question is posed; state now AWAITING_QUIZ_ANSWER)
+                  value:
+                    reply_to_user: "Let's go! Here's your first one: What is the capital of France?"
+                    command: "QUIZ"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                graded:
+                  summary: ANSWER (graded)
+                  value:
+                    reply_to_user: "Correct! Paris it is."
+                    command: "ANSWER"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                resetOk:
+                  summary: RESET_CACHE
+                  value:
+                    reply_to_user: "Cache has been reset. Starting fresh!"
+                    command: "RESET_CACHE"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                csvEmailed:
+                  summary: GENERATE_CSV_OF_QA
+                  value:
+                    reply_to_user: "Done! Your Q&A export has been sent to bruce@schechter.com."
+                    command: "GENERATE_CSV_OF_QA"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+        "400":
+          description: |
+            Bad request. Two distinct cases with **different body shapes**:
+            * missing `text_from_user` (or username claim) → `{error}`;
+            * `send_csv` requested but the account has no email on file →
+              `{reply_to_user}`.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - $ref: '#/components/schemas/ReplyOnlyError'
+              examples:
+                missingParams:
+                  summary: Missing text_from_user (error 848204)
+                  value:
+                    error: "Missing username or text_from_user-848204"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                noEmail:
+                  summary: send_csv but no email on the account
+                  value:
+                    reply_to_user: "No email address found for your account."
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+        "401":
+          description: |
+            Unauthorized — the request reached the Lambda without Cognito
+            authorizer claims (missing/invalid token). Normally API Gateway
+            rejects these before the Lambda runs; this is the defensive fallback.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized: missing authentication claims"
+                request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+        "500":
+          description: |
+            Internal error — a genuine system fault, not a domain outcome.
+            Returned for: reset-cache persistence failure (error 749201), CSV
+            generation failure, CSV email (SES) failure, a **DynamoDB read/write
+            failure** in an add/update/delete/remind, an **embedding-generation
+            failure**, or an **S3 state-persist failure**.
+
+            **Body shape depends on origin.** The magic-literal short circuits
+            (reset/CSV) return `{reply_to_user}` (`ReplyOnlyError`). Faults that
+            surface from within command dispatch flow through the normal return
+            path and carry the full `{reply_to_user, command, request_id}`
+            envelope (`command` names the command that was being attempted when
+            it failed). Clients should surface `reply_to_user` either way.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ReplyOnlyError'
+                  - $ref: '#/components/schemas/MemoryReply'
+              examples:
+                resetFailed:
+                  summary: reset-cache persist failure (ReplyOnlyError)
+                  value:
+                    reply_to_user: "Error 749201: Failed to reset cache"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                csvFailed:
+                  summary: CSV generation failure (ReplyOnlyError)
+                  value:
+                    reply_to_user: "Sorry, I couldn't generate your CSV: <detail>"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                emailFailed:
+                  summary: CSV email failure (ReplyOnlyError)
+                  value:
+                    reply_to_user: "CSV was generated but the email failed to send: <detail>"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                dispatchFault:
+                  summary: DynamoDB write failure during UPDATE (full envelope)
+                  value:
+                    reply_to_user: "ERROR 376451: updating DynamoDB item [ClientError]: <detail>"
+                    command: "UPDATE"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+        "513":
+          description: |
+            **App-specific code (not a standard HTTP status).** An LLM/Bedrock
+            call failed. Two origins: the command-classification call (error
+            484288), which returns `{reply_to_user}` (`ReplyOnlyError`); or the
+            quiz-answer grading call, which surfaces through command dispatch and
+            carries the full `{reply_to_user, command, request_id}` envelope with
+            `command` = `ANSWER`. Clients surface `reply_to_user` either way.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ReplyOnlyError'
+                  - $ref: '#/components/schemas/MemoryReply'
+              examples:
+                classifyFailed:
+                  summary: classification call failed (ReplyOnlyError)
+                  value:
+                    reply_to_user: "Error 484288, ChatGPT call failed"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                gradingFailed:
+                  summary: quiz grading call failed (full envelope)
+                  value:
+                    reply_to_user: "I encountered an error while evaluating your answer. Please try again."
+                    command: "ANSWER"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+        "520":
+          description: |
+            **App-specific code (not a standard HTTP status).** The backend
+            could not resolve the message to a known command (error 499742).
+            Body is the full `{reply_to_user, command, request_id}` envelope
+            with `command` = `ERROR_UNKNOWN_COMMAND`.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryReply'
+              example:
+                reply_to_user: "Error 499742, LLM was unable to determine command category"
+                command: "ERROR_UNKNOWN_COMMAND"
+                request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+
+    options:
+      tags: [memory]
+      operationId: optionsMemory
+      summary: CORS preflight.
+      description: |
+        Browsers send this automatically before the cross-origin POST. The
+        Lambda short-circuits it with 204 and permissive CORS headers. No auth
+        required.
+      responses:
+        "204":
+          description: No content; CORS headers returned.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+              example: "OPTIONS,POST"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+              example: "*"
+
+components:
+
+  securitySchemes:
+    cognitoBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Amazon Cognito **ID token** (User Pool `us-west-2_5CFZClYPo`, app client
+        `2ai4o11chs71s82op7sjirh2ih`) passed as `Authorization: Bearer <token>`.
+        API Gateway's Cognito authorizer validates it; the Lambda reads the
+        `sub` (partition key) and `email` claims from the verified token.
+
+  headers:
+    AccessControlAllowOrigin:
+      description: CORS — always `*`.
+      schema:
+        type: string
+      example: "*"
+
+  schemas:
+
+    MemoryRequest:
+      type: object
+      required: [text_from_user]
+      additionalProperties: false
+      properties:
+        text_from_user:
+          type: string
+          minLength: 1
+          description: |
+            One natural-language utterance, exactly as typed or spoken. May be a
+            fact to add, a question, a quiz answer, a command phrase ("quiz me",
+            "delete the Hamlet question"), or a magic literal (`RESET_CACHE`,
+            `send_csv`). The backend classifies/normalizes it; the client does
+            not pre-parse.
+          example: "The capital of France is Paris"
+
+    MemoryReply:
+      type: object
+      required: [reply_to_user, command]
+      properties:
+        reply_to_user:
+          type: string
+          description: |
+            Friendly, plain-text message to show (and possibly speak via TTS) to
+            the user. Never contains markdown.
+          example: "Added — 'What is the capital of France?' → 'Paris'."
+        command:
+          $ref: '#/components/schemas/Command'
+        request_id:
+          type: string
+          nullable: true
+          description: |
+            The AWS Lambda invocation id, for correlating with CloudWatch logs.
+            Present on every MemoryReply (including the RESET_CACHE and
+            GENERATE_CSV_OF_QA short-circuits); null only if the runtime did not
+            supply one.
+          example: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+
+    Command:
+      type: string
+      description: |
+        The action the backend resolved the message to.
+        * `NEW` — added a question/answer pair
+        * `UPDATE` — changed an existing answer
+        * `REMIND` — recalled a stored answer
+        * `DELETE` — removed a stored pair
+        * `QUIZ` — started a quiz (a question is now posed)
+        * `ANSWER` — graded a quiz answer
+        * `INSTRUCTIONS` — help / fallback for unclear input
+        * `RESET_CACHE` — cleared conversation state (magic literal)
+        * `GENERATE_CSV_OF_QA` — emailed a CSV export (magic literal `send_csv`)
+        * `ERROR_UNKNOWN_COMMAND` — backend could not resolve a command (with 520)
+      enum:
+        - NEW
+        - UPDATE
+        - REMIND
+        - DELETE
+        - QUIZ
+        - ANSWER
+        - INSTRUCTIONS
+        - RESET_CACHE
+        - GENERATE_CSV_OF_QA
+        - ERROR_UNKNOWN_COMMAND
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Machine-flavored error message (auth / validation failures).
+          example: "Unauthorized: missing authentication claims"
+        request_id:
+          type: string
+          nullable: true
+          description: |
+            The AWS Lambda invocation id, for correlating with CloudWatch logs.
+            Present on every response (including errors); null only if the
+            runtime did not supply one.
+          example: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+
+    ReplyOnlyError:
+      type: object
+      required: [reply_to_user]
+      properties:
+        reply_to_user:
+          type: string
+          description: |
+            User-facing error message. Used by soft failures (reset/CSV/email/LLM)
+            that omit `command`.
+          example: "Error 484288, ChatGPT call failed"
+        request_id:
+          type: string
+          nullable: true
+          description: |
+            The AWS Lambda invocation id, for correlating with CloudWatch logs.
+            Present on every response (including errors); null only if the
+            runtime did not supply one.
+          example: "8f1c2e7a-1234-4abc-9def-0123456789ab"
