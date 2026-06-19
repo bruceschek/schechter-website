@@ -50,8 +50,9 @@ on its own. This skill refreshes that replica and keeps `memory.html` conformant
    | Request body is `{ "text_from_user": <string> }` | `postUtterance` fetch body | the request field name/shape changes |
    | Auth = Cognito **ID token** as `Authorization: Bearer` | `restoreSession` / `signIn` | the token type or header changes |
    | UserPoolId / ClientId / API URL | config consts near top of `<script>` | the pool, app client, or endpoint changes |
-   | Reply read as `reply_to_user` ‖ `error`, any non-200 = error | `postUtterance` | those field names change |
+   | Reply read as `reply_to_user`; any non-200 = error (RFC 9457 problem+json — `reply_to_user` is a required member on every error too) | `postUtterance` | that field name changes |
    | 401 ⇒ treat as expired session | `postUtterance` | auth-failure handling changes |
+   | Status set `{200,400,401,500,502,503}`; client doesn't branch on code except 401 | `postUtterance` | a new code needs distinct UX (e.g. honoring `Retry-After` on 503) |
    | Magic literals `RESET_CACHE`, `send_csv` | `exportCsv` sends `send_csv` | a literal is renamed/removed/added |
    | CORS requires `credentials: 'omit'` (ACAO `*`) | `postUtterance` fetch opts | ACAO is locked to an origin |
 

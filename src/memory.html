@@ -228,8 +228,9 @@
     // ---- Service config (same account as the iOS app) ----
     // Conforms to the Memory Lambda API contract; a replica of the authoritative
     // spec is kept at ../docs/memory-api.openapi.yaml. The client sends one raw
-    // utterance in text_from_user and surfaces reply_to_user (or error) for every
-    // status code, so all documented commands and magic literals (RESET_CACHE,
+    // utterance in text_from_user and surfaces reply_to_user for every status
+    // code (it is a required member on success AND on every RFC 9457 error
+    // response), so all documented commands and magic literals (RESET_CACHE,
     // send_csv) work just by sending the text. Re-sync with /sync-memory-api-spec.
     const MEMORY_API   = 'https://fjic2zgsqf.execute-api.us-west-2.amazonaws.com/prod/memory';
     const USER_POOL_ID = 'us-west-2_5CFZClYPo';
@@ -362,9 +363,10 @@
     }
 
     // ---- Send one utterance to the API ----
-    // Per the contract, every status code carries reply_to_user (or error); we
-    // surface that and treat 401 as an expired session. echoUser=false is used
-    // for magic literals (e.g. send_csv) so the literal never shows as a bubble.
+    // Per the contract, every status code carries reply_to_user (required on
+    // success and on every RFC 9457 error); we surface that and treat 401 as an
+    // expired session. echoUser=false is used for magic literals (e.g. send_csv)
+    // so the literal never shows as a bubble.
     async function postUtterance(text, { echoUser }) {
       if (!idToken) { showSignedOut('Please sign in again.', true); return; }
       if (echoUser) addMessage('user', text);
@@ -390,7 +392,7 @@
           return;
         }
 
-        const reply = data && (data.reply_to_user || data.error);
+        const reply = data && data.reply_to_user;
         addMessage('assistant', reply || 'Something went wrong. Please try again.');
       } catch (err) {
         thinking.remove();

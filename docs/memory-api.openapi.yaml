@@ -32,16 +32,22 @@ info:
     partition key) and `email` claims; the Lambda never trusts a client-supplied
     username.
 
-    **Non-standard status codes.** Because the Lambda uses proxy integration,
-    the `statusCode` it sets is returned verbatim. Two are app-specific and not
-    part of the HTTP registry: `513` (LLM/Bedrock call failed) and `520`
-    (backend could not resolve a command). Clients should treat any non-200 as
-    an error and surface `reply_to_user` (or `error`) to the user.
+    **Status codes.** The Lambda emits exactly `{200, 400, 401, 500, 502,
+    503}` — all real HTTP codes. The app-specific `513`/`520` were retired in
+    the RFC 9457 error-model pass (Issue #8): an LLM/embedding *call* failure is
+    now `503` (transient, retryable, carries `Retry-After`); an LLM
+    *bogus-command* response is `502`. The distinct causes that share a status
+    are told apart by the problem `type` (see below).
 
-    **Response envelopes.** The happy path and most soft errors return
-    `{reply_to_user, command, request_id}`. Hard auth/validation failures (401,
-    missing-params 400) return `{error}` instead. Both shapes are documented per
-    response below.
+    **Error envelope (RFC 9457).** Every non-2xx response is
+    `application/problem+json` with the same shape — a `ProblemDetails` object
+    `{type, title, status, detail, instance}` plus the extension members
+    `{request_id, reply_to_user, command}`. The stable `type` URI
+    (`https://schechter.com/error_codes/<slug>`) is the machine key; mirror it
+    against the symbolic registry in `errors.py`. Clients surface
+    `reply_to_user` to the user and may branch on `type` or `status`. The
+    success path is unchanged: `200` returns `{reply_to_user, command,
+    request_id}`.
   contact:
     name: Bruce Schechter
     email: bruce@schechter.com
@@ -114,7 +120,7 @@ paths:
             similarity match on UPDATE/DELETE, an instruction it couldn't parse,
             "no active quiz to answer", and "you have no questions to quiz on
             yet". Only malformed requests (400/401) and genuine system/LLM
-            faults (500/513/520) are non-2xx. See docs/spec-conformance.md for
+            faults (500/502/503) are non-2xx. See docs/spec-conformance.md for
             the status-code taxonomy.
           headers:
             Access-Control-Allow-Origin:
@@ -156,136 +162,183 @@ paths:
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
         "400":
           description: |
-            Bad request. Two distinct cases with **different body shapes**:
-            * missing `text_from_user` (or username claim) → `{error}`;
-            * `send_csv` requested but the account has no email on file →
-              `{reply_to_user}`.
+            Bad request (`application/problem+json`). Two `type`s:
+            * `missing-params` — `text_from_user` (or the username claim) is
+              absent;
+            * `no-email-on-account` — `send_csv` requested but the account has
+              no email on file (`command` = `GENERATE_CSV_OF_QA`).
           headers:
             Access-Control-Allow-Origin:
               $ref: '#/components/headers/AccessControlAllowOrigin'
           content:
-            application/json:
+            application/problem+json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/ErrorResponse'
-                  - $ref: '#/components/schemas/ReplyOnlyError'
+                $ref: '#/components/schemas/ProblemDetails'
               examples:
                 missingParams:
-                  summary: Missing text_from_user (error 848204)
+                  summary: Missing text_from_user
                   value:
-                    error: "Missing username or text_from_user-848204"
+                    type: "https://schechter.com/error_codes/missing-params"
+                    title: "Required request parameter missing"
+                    status: 400
+                    detail: "Missing username or text_from_user"
+                    instance: "lambda_function.py:lambda_handler:91"
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                    reply_to_user: "Your request was missing required information."
                 noEmail:
                   summary: send_csv but no email on the account
                   value:
-                    reply_to_user: "No email address found for your account."
+                    type: "https://schechter.com/error_codes/no-email-on-account"
+                    title: "No email address on the account"
+                    status: 400
+                    detail: "No email address on the Cognito profile"
+                    instance: "lambda_function.py:lambda_handler:175"
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                    reply_to_user: "No email address found for your account."
+                    command: "GENERATE_CSV_OF_QA"
         "401":
           description: |
-            Unauthorized — the request reached the Lambda without Cognito
-            authorizer claims (missing/invalid token). Normally API Gateway
-            rejects these before the Lambda runs; this is the defensive fallback.
+            Unauthorized (`application/problem+json`, `type` = `unauthorized`) —
+            the request reached the Lambda without Cognito authorizer claims
+            (missing/invalid token). Normally API Gateway rejects these before
+            the Lambda runs; this is the defensive fallback.
           headers:
             Access-Control-Allow-Origin:
               $ref: '#/components/headers/AccessControlAllowOrigin'
           content:
-            application/json:
+            application/problem+json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ProblemDetails'
               example:
-                error: "Unauthorized: missing authentication claims"
+                type: "https://schechter.com/error_codes/unauthorized"
+                title: "Missing or invalid authentication"
+                status: 401
+                detail: "Request reached the Lambda without Cognito authorizer claims"
+                instance: "lambda_function.py:lambda_handler:64"
                 request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                reply_to_user: "You need to sign in again."
         "500":
           description: |
-            Internal error — a genuine system fault, not a domain outcome.
-            Returned for: reset-cache persistence failure (error 749201), CSV
-            generation failure, CSV email (SES) failure, a **DynamoDB read/write
-            failure** in an add/update/delete/remind, an **embedding-generation
-            failure**, or an **S3 state-persist failure**.
-
-            **Body shape depends on origin.** The magic-literal short circuits
-            (reset/CSV) return `{reply_to_user}` (`ReplyOnlyError`). Faults that
-            surface from within command dispatch flow through the normal return
-            path and carry the full `{reply_to_user, command, request_id}`
-            envelope (`command` names the command that was being attempted when
-            it failed). Clients should surface `reply_to_user` either way.
+            Internal error (`application/problem+json`) — a genuine system
+            fault, not a domain outcome. The `type` names the specific cause:
+            `reset-cache-failed`, `csv-generation-failed`, `csv-email-failed`,
+            `db-read-failed`, `db-write-failed`, `db-delete-failed`,
+            `persist-failed`, `quiz-state-corrupt`, or `internal-unexpected`
+            (uncaught fallback). When the fault surfaced inside command
+            dispatch, `command` names the command being attempted.
           headers:
             Access-Control-Allow-Origin:
               $ref: '#/components/headers/AccessControlAllowOrigin'
           content:
-            application/json:
+            application/problem+json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/ReplyOnlyError'
-                  - $ref: '#/components/schemas/MemoryReply'
+                $ref: '#/components/schemas/ProblemDetails'
               examples:
                 resetFailed:
-                  summary: reset-cache persist failure (ReplyOnlyError)
+                  summary: reset-cache persist failure
                   value:
-                    reply_to_user: "Error 749201: Failed to reset cache"
+                    type: "https://schechter.com/error_codes/reset-cache-failed"
+                    title: "Reset-cache persistence failed"
+                    status: 500
+                    detail: "persist_to_s3() returned non-200 clearing the cache"
+                    instance: "lambda_function.py:lambda_handler:118"
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
-                csvFailed:
-                  summary: CSV generation failure (ReplyOnlyError)
+                    reply_to_user: "Sorry, I couldn't reset your cache. Please try again."
+                    command: "RESET_CACHE"
+                dbWriteFault:
+                  summary: DynamoDB write failure during UPDATE
                   value:
-                    reply_to_user: "Sorry, I couldn't generate your CSV: <detail>"
+                    type: "https://schechter.com/error_codes/db-write-failed"
+                    title: "DynamoDB write failed"
+                    status: 500
+                    detail: "put_item threw ClientError updating an existing pair"
+                    instance: "lambda_function.py:lambda_handler:/ UPDATE branch"
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
-                emailFailed:
-                  summary: CSV email failure (ReplyOnlyError)
-                  value:
-                    reply_to_user: "CSV was generated but the email failed to send: <detail>"
-                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
-                dispatchFault:
-                  summary: DynamoDB write failure during UPDATE (full envelope)
-                  value:
-                    reply_to_user: "ERROR 376451: updating DynamoDB item [ClientError]: <detail>"
+                    reply_to_user: "Sorry, I couldn't save that change. Please try again."
                     command: "UPDATE"
+                quizStateCorrupt:
+                  summary: stored quiz answer embedding missing/corrupt
+                  value:
+                    type: "https://schechter.com/error_codes/quiz-state-corrupt"
+                    title: "Stored quiz answer embedding missing or corrupt"
+                    status: 500
+                    detail: "Vectorized answer absent from cached quiz state"
+                    instance: "quiz.py:llm_returned_ANSWER:289"
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
-        "513":
+                    reply_to_user: "Something went wrong with that quiz. Please start a new one."
+                    command: "ANSWER"
+        "502":
           description: |
-            **App-specific code (not a standard HTTP status).** An LLM/Bedrock
-            call failed. Two origins: the command-classification call (error
-            484288), which returns `{reply_to_user}` (`ReplyOnlyError`); or the
-            quiz-answer grading call, which surfaces through command dispatch and
-            carries the full `{reply_to_user, command, request_id}` envelope with
-            `command` = `ANSWER`. Clients surface `reply_to_user` either way.
+            Bad gateway (`application/problem+json`, `type` =
+            `llm-unknown-command`) — the LLM answered, but with a command
+            outside the closed vocabulary (an upstream malfunction, not user
+            ambiguity, which is a soft 200). `command` =
+            `ERROR_UNKNOWN_COMMAND`. Not retryable.
           headers:
             Access-Control-Allow-Origin:
               $ref: '#/components/headers/AccessControlAllowOrigin'
           content:
-            application/json:
+            application/problem+json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/ReplyOnlyError'
-                  - $ref: '#/components/schemas/MemoryReply'
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: "https://schechter.com/error_codes/llm-unknown-command"
+                title: "LLM returned an unrecognized command"
+                status: 502
+                detail: "LLM returned unrecognized command 'FROBNICATE'"
+                instance: "lambda_function.py:lambda_handler:/ match default"
+                request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                reply_to_user: "Sorry, I couldn't tell what you wanted to do. Please try rephrasing."
+                command: "ERROR_UNKNOWN_COMMAND"
+        "503":
+          description: |
+            Service unavailable (`application/problem+json`) — a transient
+            upstream (LLM/embedding) fault; **retryable**, so the response
+            carries a `Retry-After` header. The `type` names the call that
+            failed: `llm-call-failed` (classification), `llm-grade-failed`
+            (quiz-answer grading, `command` = `ANSWER`), or `embeddings-failed`.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
               examples:
                 classifyFailed:
-                  summary: classification call failed (ReplyOnlyError)
+                  summary: classification call failed
                   value:
-                    reply_to_user: "Error 484288, ChatGPT call failed"
+                    type: "https://schechter.com/error_codes/llm-call-failed"
+                    title: "LLM classification call failed"
+                    status: 503
+                    detail: "llm_query returned success=False during classification"
+                    instance: "lambda_function.py:lambda_handler:/ classify"
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                    reply_to_user: "Sorry, I had trouble understanding that just now. Please try again."
                 gradingFailed:
-                  summary: quiz grading call failed (full envelope)
+                  summary: quiz grading call failed
                   value:
+                    type: "https://schechter.com/error_codes/llm-grade-failed"
+                    title: "LLM answer-grading call failed"
+                    status: 503
+                    detail: "llm_query returned success=False during answer grading"
+                    instance: "quiz.py:llm_returned_ANSWER:315"
+                    request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
                     reply_to_user: "I encountered an error while evaluating your answer. Please try again."
                     command: "ANSWER"
+                embeddingsFailed:
+                  summary: embedding generation failed
+                  value:
+                    type: "https://schechter.com/error_codes/embeddings-failed"
+                    title: "Embedding generation call failed"
+                    status: 503
+                    detail: "get_vector_embeddings threw during UPDATE"
+                    instance: "lambda_function.py:lambda_handler:/ UPDATE branch"
                     request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
-        "520":
-          description: |
-            **App-specific code (not a standard HTTP status).** The backend
-            could not resolve the message to a known command (error 499742).
-            Body is the full `{reply_to_user, command, request_id}` envelope
-            with `command` = `ERROR_UNKNOWN_COMMAND`.
-          headers:
-            Access-Control-Allow-Origin:
-              $ref: '#/components/headers/AccessControlAllowOrigin'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MemoryReply'
-              example:
-                reply_to_user: "Error 499742, LLM was unable to determine command category"
-                command: "ERROR_UNKNOWN_COMMAND"
-                request_id: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+                    reply_to_user: "Sorry, I had trouble processing that just now. Please try again."
+                    command: "UPDATE"
 
     options:
       tags: [memory]
@@ -329,6 +382,13 @@ components:
       schema:
         type: string
       example: "*"
+    RetryAfter:
+      description: |
+        Seconds to wait before retrying. Present only on retryable (`503`)
+        faults.
+      schema:
+        type: integer
+      example: 5
 
   schemas:
 
@@ -383,7 +443,8 @@ components:
         * `INSTRUCTIONS` — help / fallback for unclear input
         * `RESET_CACHE` — cleared conversation state (magic literal)
         * `GENERATE_CSV_OF_QA` — emailed a CSV export (magic literal `send_csv`)
-        * `ERROR_UNKNOWN_COMMAND` — backend could not resolve a command (with 520)
+        * `ERROR_UNKNOWN_COMMAND` — LLM returned a command outside this
+          vocabulary (only on a 502 `llm-unknown-command` problem response)
       enum:
         - NEW
         - UPDATE
@@ -396,33 +457,68 @@ components:
         - GENERATE_CSV_OF_QA
         - ERROR_UNKNOWN_COMMAND
 
-    ErrorResponse:
+    ProblemDetails:
       type: object
-      required: [error]
+      description: |
+        RFC 9457 "Problem Details" — the single shape of every non-2xx response
+        (media type `application/problem+json`). The standard members are
+        `type/title/status/detail/instance`; `request_id`, `reply_to_user`, and
+        `command` are extension members (allowed by the spec). Each error is
+        defined once in the symbolic registry in `errors.py`; the `type` slug
+        and `status` here mirror that registry.
+      required: [type, title, status, detail, reply_to_user]
       properties:
-        error:
+        type:
           type: string
-          description: Machine-flavored error message (auth / validation failures).
-          example: "Unauthorized: missing authentication claims"
-        request_id:
-          type: string
-          nullable: true
+          format: uri
           description: |
-            The AWS Lambda invocation id, for correlating with CloudWatch logs.
-            Present on every response (including errors); null only if the
-            runtime did not supply one.
-          example: "8f1c2e7a-1234-4abc-9def-0123456789ab"
-
-    ReplyOnlyError:
-      type: object
-      required: [reply_to_user]
-      properties:
+            Stable URI identifying the problem kind:
+            `https://schechter.com/error_codes/<slug>`. The machine key — branch
+            on this, not on `detail`. Slugs: `missing-params`,
+            `no-email-on-account`, `unauthorized`, `reset-cache-failed`,
+            `csv-generation-failed`, `csv-email-failed`, `db-read-failed`,
+            `db-write-failed`, `db-delete-failed`, `persist-failed`,
+            `quiz-state-corrupt`, `internal-unexpected`, `llm-unknown-command`,
+            `llm-call-failed`, `llm-grade-failed`, `embeddings-failed`.
+          example: "https://schechter.com/error_codes/db-write-failed"
+        title:
+          type: string
+          description: |
+            Stable, developer-facing summary of the problem kind (does not vary
+            between occurrences of the same `type`).
+          example: "DynamoDB write failed"
+        status:
+          type: integer
+          description: |
+            The HTTP status code, duplicated in the body per RFC 9457. One of
+            `{400, 401, 500, 502, 503}`.
+          example: 500
+        detail:
+          type: string
+          description: |
+            Occurrence-specific, developer-facing explanation of this particular
+            failure. Not necessarily shown to the user (that is `reply_to_user`).
+          example: "put_item threw ClientError updating an existing pair"
+        instance:
+          type: string
+          description: |
+            The raise/handle site, auto-captured as `file:func:line`, for
+            correlating with CloudWatch logs.
+          example: "lambda_function.py:lambda_handler:175"
         reply_to_user:
           type: string
           description: |
-            User-facing error message. Used by soft failures (reset/CSV/email/LLM)
-            that omit `command`.
-          example: "Error 484288, ChatGPT call failed"
+            Friendly, plain-text, speakable message to show the user. Always
+            present on error responses (extension member).
+          example: "Sorry, I couldn't save that change. Please try again."
+        command:
+          allOf:
+            - $ref: '#/components/schemas/Command'
+          description: |
+            Present when the fault surfaced inside command dispatch — names the
+            command being attempted (or `ERROR_UNKNOWN_COMMAND` on a 502).
+            Absent for request-level faults (e.g. `missing-params`,
+            `unauthorized`).
         request_id:
           type: string
           nullable: true
