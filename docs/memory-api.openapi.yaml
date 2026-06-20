@@ -1,7 +1,7 @@
 openapi: 3.0.3
 
 # =============================================================================
-# Rapid Recall — Memory Lambda API
+# Memory Sprint — Memory Lambda API
 #
 # Single endpoint backed by the `memory03` AWS Lambda (us-west-2) behind API
 # Gateway. The iOS app (../memory) is the canonical client. This spec is hand-
@@ -19,10 +19,10 @@ openapi: 3.0.3
 # =============================================================================
 
 info:
-  title: Rapid Recall — Memory Lambda API
+  title: Memory Sprint — Memory Lambda API
   version: "1.0.0"
   description: |
-    Backend for the Rapid Recall (a.k.a. Memory Sprint) fact-memorization app.
+    Backend for the Memory Sprint fact-memorization app.
     One POST endpoint accepts a free-text user utterance and returns a friendly
     reply plus the command the backend resolved it to.
 
