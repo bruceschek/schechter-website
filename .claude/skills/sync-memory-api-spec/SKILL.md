@@ -13,7 +13,7 @@ on its own. This skill refreshes that replica and keeps `memory.html` conformant
 ## Paths
 
 - **Source of truth** (MemoryApp, read-only — do not edit):
-  `~/dev/swift/008-memory/MemoryApp/memory03-rawpython/openapi.yaml`
+  `~/dev/projects/0062-memory [s008]/MemoryApp/memory03-rawpython/openapi.yaml`
 - **Replica in this repo:**
   `docs/memory-api.openapi.yaml` (kept byte-identical to the source)
 - **Client to reconcile:** `src/memory.html`
@@ -22,12 +22,12 @@ on its own. This skill refreshes that replica and keeps `memory.html` conformant
 
 1. **Check the source exists and diff it against the replica:**
    ```
-   diff ~/dev/swift/008-memory/MemoryApp/memory03-rawpython/openapi.yaml \
+   diff ~/dev/projects/0062-memory\ \[s008\]/MemoryApp/memory03-rawpython/openapi.yaml \
         docs/memory-api.openapi.yaml
    ```
    - No output → already in sync. Report that and stop (nothing to do).
    - If the source path is missing, the MemoryApp project may have moved; search
-     for `openapi.yaml` under `~/dev/swift/008-memory` and update these paths +
+     for `openapi.yaml` under `~/dev/projects/0062-memory [s008]` and update these paths +
      this skill if it relocated. Do **not** edit anything inside MemoryApp.
 
 2. **If they differ, read both** and summarize what changed — focus on the parts
@@ -36,7 +36,7 @@ on its own. This skill refreshes that replica and keeps `memory.html` conformant
 3. **Overwrite the replica with the source** (keep it byte-identical so the next
    diff is clean):
    ```
-   cp ~/dev/swift/008-memory/MemoryApp/memory03-rawpython/openapi.yaml \
+   cp ~/dev/projects/0062-memory\ \[s008\]/MemoryApp/memory03-rawpython/openapi.yaml \
       docs/memory-api.openapi.yaml
    ```
 

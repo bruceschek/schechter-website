@@ -407,6 +407,21 @@ components:
             `send_csv`). The backend classifies/normalizes it; the client does
             not pre-parse.
           example: "The capital of France is Paris"
+        answering_question_id:
+          type: string
+          nullable: true
+          description: |
+            The `pending_question_id` the client last received, identifying which
+            quiz question this message is answering. Optional — omit it outside a
+            quiz, and older clients omit it entirely.
+
+            It exists to defeat a stale answer. The mic stays live while an answer
+            is being graded, so a client may capture speech, park it, and send it
+            only after the reply (which already carries the NEXT question) has come
+            back. Such speech predates the pending question and cannot be an answer
+            to it. When this id does not match the question now pending, the backend
+            re-asks that question instead of grading — see `STALE_ANSWER_REASKS`.
+          example: "3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
 
     MemoryReply:
       type: object
@@ -429,6 +444,19 @@ components:
             GENERATE_CSV_OF_QA short-circuits); null only if the runtime did not
             supply one.
           example: "8f1c2e7a-1234-4abc-9def-0123456789ab"
+        pending_question_id:
+          type: string
+          nullable: true
+          description: |
+            The id of the quiz question now awaiting an answer, or null when no
+            question is pending (i.e. the conversation is not in
+            `AWAITING_QUIZ_ANSWER`). Non-null on a `QUIZ` reply and on an `ANSWER`
+            reply that posed a follow-up question.
+
+            Clients should retain this and echo it back as `answering_question_id`
+            on the next answer, so the backend can tell a fresh answer from one
+            captured before this question was asked.
+          example: "3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
 
     Command:
       type: string
